@@ -1,5 +1,5 @@
-STUID = ysyx_22040000
-STUNAME = 张三
+STUID = ysyx_22040343
+STUNAME = 陈庭润 
 
 # DO NOT modify the following code!!!
 
