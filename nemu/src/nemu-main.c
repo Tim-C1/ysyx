@@ -19,8 +19,7 @@ int main(int argc, char *argv[]) {
   compare_exp();
   /* Start engine. */
   engine_start();
-
-  return is_exit_status_bad();
+return is_exit_status_bad();
 }
 
 static void read_input(char *input[]) {
@@ -60,3 +59,4 @@ static int compare_exp(void) {
     }
     return 1;
 }
+
