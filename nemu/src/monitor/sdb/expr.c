@@ -25,7 +25,8 @@ static struct rule {
   {" +", TK_NOTYPE},    // spaces
   {"0[xX][0-9a-fA-F]+", TK_HEX}, // hexadecimal number
   {"[0-9]+", TK_DEC},   // decimal number
-  {"(\\$[0a-zA-Z]+)|([xX][0-9]+)", TK_REG},  // reg name
+  //{"(\\$[0a-zA-Z]+)|([xX][0-9]+)", TK_REG},  // reg name
+  {"(\\$[0a-zA-Z]+)|(\\$[a-zA-Z][0-9])", TK_REG},  // reg name
   {"\\+", '+'},         // plus
   {"==", TK_EQ},        // equal
   {"-", '-'},		    // minus
