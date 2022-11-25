@@ -1,14 +1,27 @@
-module top(
-  input clk,
-  input rst,
-  output reg [15:0] led
+module top ( 
+    input clk,
+    input rst,
+    input [31:0] inst,
+    output reg [63:0] r1,
+    output reg [63:0] r2,
+    output reg [63:0] pc_val
 );
-  reg [31:0] count;
-  always @(posedge clk) begin
-    if (rst) begin led <= 1; count <= 0; end
-    else begin
-      if (count == 0) led <= {led[14:0], led[15]};
-      count <= (count >= 5000000 ? 32'b0 : count + 1);
-    end
-  end
+
+// signal from idu
+wire [63:0] immi_sext;
+wire [4:0] rs1;
+wire [4:0] rd;
+
+// signal from exu
+wire wen;
+wire [63:0] result;
+
+// signal from gpr
+wire [63:0] rs1_val;
+
+idu idu (.inst(inst), .immi_sext(immi_sext), .rs1(rs1), .rd(rd));
+exu exu (.rs1_val(rs1_val), .immi_sext(immi_sext), .result(result), .wen(wen));
+RegisterFile #(5, 64) gpr (.clk(clk), .wdata(result), .waddr(rd), .raddr(rs1), .wen(wen), .rdata(rs1_val), .r1(r1), .r2(r2));
+pc pc(.clk(clk), .rst(rst), .wdata(0), .wen(0), .pc_val(pc_val));
+
 endmodule
