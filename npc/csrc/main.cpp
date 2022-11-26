@@ -1,16 +1,20 @@
 #include <cstdint>
+#include <cstdio>
 #include <iostream>
 #include <cstdlib>
 #include <stdlib.h>
 #include <verilated.h>
 #include <verilated_vcd_c.h>
 #include "Vtop.h"
+#include "Vtop__Dpi.h"
+#include "svdpi.h"
 
 #define CONFIG_MBASE 0x80000000
 #define CONFIG_MSIZE 0x8000000
 
 #define SIM_END_TIME 100
 vluint64_t sim_time = 0;
+svLogic is_ebreak = 0;
 static uint8_t pmem[CONFIG_MSIZE] = {};
 uint8_t* guest_to_host(uint64_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 
@@ -47,6 +51,8 @@ void init_mem() {
     pmem_write(0x80000004, 4, 0x00108113); // immi = 1, rs1 = 1, rd = 2 addi 
     pmem_write(0x80000008, 4, 0x00208113); // immi = 1, rs1 = 1, rd = 2 addi 
     pmem_write(0x8000000c, 4, 0x00308113); // immi = 1, rs1 = 1, rd = 2 addi 
+    pmem_write(0x80000010, 4, 0x00000000); // immi = 1, rs1 = 1, rd = 2 addi 
+    pmem_write(0x80000014, 4, 0x00100073); // ebreak
 }
 
 void pc_reset (Vtop *dut, vluint64_t &sim_time) {
@@ -64,8 +70,15 @@ int main() {
     dut->trace(m_trace, 5);
     m_trace->open("waveform.vcd");
 
+    const svScope scope = svGetScopeFromName("TOP.top");
+    assert(scope);  // Check for nullptr if scope not found
+    svSetScope(scope);
     init_mem();
     while (sim_time < SIM_END_TIME) {
+        ebreak_detect(&is_ebreak);
+        if (is_ebreak == 1) {
+            break;
+        }
         pc_reset(dut, sim_time);
 
         dut -> clk ^= 1;
@@ -74,7 +87,6 @@ int main() {
         if (dut->clk == 1 && sim_time >= 5) {
             dut -> inst = pmem_read(dut -> pc_val, 4);
         }
-
         m_trace -> dump(sim_time);
         sim_time++;
     }

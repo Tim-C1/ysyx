@@ -24,4 +24,13 @@ exu exu (.rs1_val(rs1_val), .immi_sext(immi_sext), .result(result), .wen(wen));
 RegisterFile #(5, 64) gpr (.clk(clk), .wdata(result), .waddr(rd), .raddr(rs1), .wen(wen), .rdata(rs1_val), .r1(r1), .r2(r2));
 pc pc(.clk(clk), .rst(rst), .wdata(0), .wen(0), .pc_val(pc_val));
 
+export "DPI-C" task ebreak_detect;
+
+task ebreak_detect;
+    output is_ebreak;
+    begin
+        assign is_ebreak = inst == 32'b00000000000100000000000001110011;
+    end
+endtask
+
 endmodule
