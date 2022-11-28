@@ -4,7 +4,8 @@ module top (
     input [31:0] inst,
     output reg [63:0] r1,
     output reg [63:0] r2,
-    output reg [63:0] pc_val
+    output reg [63:0] pc_val,
+    output [63:0] result
 );
 
 // signal from idu
@@ -14,7 +15,7 @@ wire [4:0] rd;
 
 // signal from exu
 wire wen;
-wire [63:0] result;
+//wire [63:0] result;
 
 // signal from gpr
 wire [63:0] rs1_val;

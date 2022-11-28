@@ -14,11 +14,7 @@ module RegisterFile #(ADDR_WIDTH = 1, DATA_WIDTH = 1) (
   always @(posedge clk) begin
     if (wen) rf[waddr] <= wdata;
   end
-//always @(*) begin
-//  if (raddr == 0) rdata = 0;
-//  else rdata = rf[raddr];
-//end
-  assign rdata = rf[raddr];
+  assign rdata = (raddr == 0) ? 0: rf[raddr];
   assign r1 = rf[5'd1];
   assign r2 = rf[5'd2];
 endmodule
