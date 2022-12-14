@@ -1,19 +1,9 @@
-#include <am.h>
-#include <klib-macros.h>
-#include <klib.h>
 #include <stdarg.h>
+#include <assert.h>
 #include <string.h>
-
-#if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 static void strrev(char *str);
 
 int itoa(int num, char *str);
-
-int printf(const char *fmt, ...) { panic("Not implemented"); }
-
-int vsprintf(char *out, const char *fmt, va_list ap) {
-  panic("Not implemented");
-}
 
 int sprintf(char *out, const char *fmt, ...) {
   int cnt = 0;
@@ -45,14 +35,6 @@ int sprintf(char *out, const char *fmt, ...) {
   *tmp = '\0';
   cnt = strlen(out);
   return cnt;
-}
-
-int snprintf(char *out, size_t n, const char *fmt, ...) {
-  panic("Not implemented");
-}
-
-int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
-  panic("Not implemented");
 }
 
 /* decimal number to string */
@@ -91,4 +73,13 @@ static void strrev(char *str) {
     str[j] = a;
   }
 }
-#endif
+
+int main() {
+    char buf[120];
+    sprintf(buf, "%s\n", "hello, world!");
+    assert(strcmp(buf, "hello, world!\n") == 0);
+    sprintf(buf, "%d + %d = %d\n", 1, 1, 2);
+    assert(strcmp(buf, "1 + 1 = 2\n") == 0);
+    
+    return 0;
+}
