@@ -14,6 +14,17 @@ CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
+    
+#ifdef CONFIG_FTRACE
+typedef struct ftrace_info {
+    uint64_t jump_addr;
+    int jump_type; // 1 CALL; 2 RETURN
+    char* func_name;
+} ftrace_info; 
+extern ftrace_info ftrace_buf[1024];
+extern int ftrace_info_cnt;
+#endif
+
 int check_wp();
 
 void device_update();
@@ -61,11 +72,23 @@ static void exec_once(Decode *s, vaddr_t pc) {
 
 static void execute(uint64_t n) {
   Decode s;
+  char iringbuf[10][128];
+  int iringbuf_cnt = 0;
   for (;n > 0; n --) {
     exec_once(&s, cpu.pc);
     g_nr_guest_inst ++;
+    strcpy(iringbuf[iringbuf_cnt % 10], s.logbuf);
     trace_and_difftest(&s, cpu.pc);
-    if (nemu_state.state != NEMU_RUNNING) break;
+    if (nemu_state.state != NEMU_RUNNING) {
+        if (nemu_state.halt_ret != 0) {
+            strcat(iringbuf[iringbuf_cnt % 10], "Opps!");
+            for (int i = 0; i < 10; i++) {
+                printf("%s\n", iringbuf[i]);
+            }
+        }
+        break;
+    }
+    iringbuf_cnt++;
     IFDEF(CONFIG_DEVICE, device_update());
   }
 }
@@ -100,7 +123,18 @@ void cpu_exec(uint64_t n) {
 
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;
-
+  #ifdef CONFIG_FTRACE    
+  for (int i = 0; i < ftrace_info_cnt; i++) {
+      ftrace_info ftrace_info = ftrace_buf[i];
+      if (ftrace_info.func_name != NULL) {
+          switch (ftrace_info.jump_type) {
+              case 1: printf("CALL (%s@%#8lx)\n", ftrace_info.func_name, ftrace_info.jump_addr); break;
+              case 2: printf("RET (%s@%#8lx)\n", ftrace_info.func_name, ftrace_info.jump_addr); break;
+              default: break;
+          }
+      }
+  }
+  #endif
   switch (nemu_state.state) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
