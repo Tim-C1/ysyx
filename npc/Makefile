@@ -18,7 +18,7 @@ waves: waveform.vcd
 waveform.vcd: ./obj_dir/V$(MODULE)
 	@echo
 	@echo "### SIMULATING ###"
-	@./obj_dir/V$(MODULE)
+	@./obj_dir/V$(MODULE) $(IMG)
 
 ./obj_dir/V$(MODULE): .stamp.verilate
 	@echo
@@ -33,7 +33,7 @@ waveform.vcd: ./obj_dir/V$(MODULE)
 
 .PHONY:lint
 lint: ./vsrc/$(MODULE).v
-	verilator --lint-only./vsrc/$(MODULE).v -Ivsrc
+	verilator --lint-only ./vsrc/$(MODULE).v -Ivsrc
 
 .PHONY: clean
 clean:

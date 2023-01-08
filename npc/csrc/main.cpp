@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <iostream>
@@ -11,10 +12,17 @@
 
 #define CONFIG_MBASE 0x80000000
 #define CONFIG_MSIZE 0x8000000
+#define RESET_VECTOR CONFIG_MBASE
 
-#define SIM_END_TIME 100
+#define ASNI_FG_RED     "\33[1;31m"
+#define ASNI_FG_GREEN   "\33[1;32m"
+#define ASNI_NONE       "\33[0m"
+#define ASNI_FMT(str, fmt) fmt str ASNI_NONE
+
+#define SIM_END_TIME 1000
 vluint64_t sim_time = 0;
 svLogic is_ebreak = 0;
+svLogic trap_state = 2;
 static uint8_t pmem[CONFIG_MSIZE] = {};
 uint8_t* guest_to_host(uint64_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 
@@ -49,21 +57,51 @@ static void pmem_write(uint64_t addr, int len, uint64_t data) {
 
 void init_mem() {
     pmem_write(0x80000004, 4, 0x00108113); // immi = 1, rs1 = 1, rd = 2 addi 
-    pmem_write(0x80000008, 4, 0x00208113); // immi = 1, rs1 = 1, rd = 2 addi 
-    pmem_write(0x8000000c, 4, 0x00308113); // immi = 1, rs1 = 1, rd = 2 addi 
-    pmem_write(0x80000010, 4, 0x00000000); // immi = 1, rs1 = 1, rd = 2 addi 
+    pmem_write(0x80000008, 4, 0x00208113); // immi = 2, rs1 = 1, rd = 2 addi 
+    pmem_write(0x8000000c, 4, 0x00308113); // immi = 3, rs1 = 1, rd = 2 addi 
+    pmem_write(0x80000010, 4, 0x00408113); // immi = 4, rs1 = 1, rd = 2 addi 
     pmem_write(0x80000014, 4, 0x00100073); // ebreak
+}
+
+void load_img(char *img_path){
+    if (img_path == NULL) {
+        printf("no img is given\n");
+        assert(0);
+    }
+    FILE *fp = fopen(img_path, "rb");
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+
+    fseek(fp, 0 , SEEK_SET);
+    int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
+    assert(ret == 1);
+
+    pmem_write(CONFIG_MBASE + size, 4, 0x00100073);
+
+    fclose(fp);
 }
 
 void pc_reset (Vtop *dut, vluint64_t &sim_time) {
     dut -> rst = 0;
-    if (sim_time <= 4) {
+    if (sim_time <= 2) {
         dut -> rst = 1;
     }
 }
 
+void npc_trap (svLogic *trap_state, uint32_t pc) {
+    if (*trap_state == 0) {
+        printf("%s, AT PC = 0x%08x\n", ASNI_FMT("Hit Good Trap", ASNI_FG_GREEN), pc);
+        exit(EXIT_SUCCESS);
+    } else if (*trap_state == 1) {
+        printf("%s, AT PC = 0x%08x\n", ASNI_FMT("Hit bad Trap", ASNI_FG_RED), pc);
+        exit(EXIT_SUCCESS);
+    } else {
+        printf("Program is still running, check trap functions \n");
+        exit(EXIT_FAILURE);
+    }
+}
 
-int main() {
+int main(int argc, char *argv[]) {
     Vtop *dut = new Vtop;
     Verilated::traceEverOn(true);
     VerilatedVcdC *m_trace = new VerilatedVcdC;
@@ -73,18 +111,18 @@ int main() {
     const svScope scope = svGetScopeFromName("TOP.top");
     assert(scope);  // Check for nullptr if scope not found
     svSetScope(scope);
-    init_mem();
+    load_img(argv[1]); // $(IMG)
     while (sim_time < SIM_END_TIME) {
+        dut -> clk ^= 1;
+        dut -> eval();
         ebreak_detect(&is_ebreak);
         if (is_ebreak == 1) {
-            break;
+            trap(&trap_state);
+            npc_trap(&trap_state, dut -> pc_val);
         }
         pc_reset(dut, sim_time);
 
-        dut -> clk ^= 1;
-        dut -> eval();
-
-        if (dut->clk == 1 && sim_time >= 5) {
+        if (dut->clk == 1 && sim_time >= 2) {
             dut -> inst = pmem_read(dut -> pc_val, 4);
         }
         m_trace -> dump(sim_time);
@@ -92,5 +130,4 @@ int main() {
     }
     m_trace -> close();
     delete dut;
-    exit(EXIT_SUCCESS);
 }
