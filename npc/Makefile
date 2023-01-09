@@ -1,4 +1,10 @@
 MODULE=top
+VSRC_DIR = ./vsrc
+VINC_PATH += $(VSRC_DIR)
+SRCS=$(shell find ./csrc/ -name "*.cpp")
+CINC_PATH += $(shell pwd)/include/
+CINCLUDES = $(addprefix -CFLAGS -I, $(dir $(abspath $(shell find $(CINC_PATH) -name "*.h"))))
+VINCLUDES = $(addprefix -I, $(VINC_PATH))
 
 .PHONY:sim
 sim: waveform.vcd $(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
@@ -28,7 +34,7 @@ waveform.vcd: ./obj_dir/V$(MODULE)
 .stamp.verilate: ./vsrc/$(MODULE).v ./csrc/main.cpp
 	@echo
 	@echo "### VERILATING ###"
-	verilator -Wall --trace -cc ./vsrc/$(MODULE).v -top $(MODULE) --exe ./csrc/main.cpp -Ivsrc
+	verilator -Wall --trace -cc $(VSRC_DIR)/$(MODULE).v -top $(MODULE) --exe $(SRCS) /usr/lib/x86_64-linux-gnu/libreadline.so $(VINCLUDES) $(CINCLUDES)
 	@touch .stamp.verilate
 
 .PHONY:lint

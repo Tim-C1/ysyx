@@ -7,7 +7,7 @@ module pc(
 );
 
 always @(posedge clk) begin
-    if (rst) pc_val <= 64'h80000000;
+    if (rst) pc_val <= 64'h80000000 - 64'h4;
     else begin
         if (wen) pc_val <= wdata;
         else pc_val <= pc_val + 64'd4;
