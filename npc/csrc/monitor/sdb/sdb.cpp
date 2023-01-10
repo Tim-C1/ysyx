@@ -3,6 +3,9 @@
 #include <readline/history.h>
 #include <cpu.h>
 
+extern void scan_mem(char *args);
+extern uint64_t *cpu_gpr;
+
 static int cmd_c(char *args);
 static int cmd_si(char *args);
 static int cmd_q(char *args);
@@ -48,9 +51,19 @@ static int cmd_si(char *args) {
     return 0;
 }
 
-static int cmd_info(char *args) {return 0;}
+static int cmd_info(char *args) {
+  int i;
+  assert(cpu_gpr);
+  for (i = 0; i < 32; i++) {
+    printf("gpr[%d] = 0x%lx\n", i, cpu_gpr[i]);
+  }
+  return 0;
+}
 
-static int cmd_scan_mem(char *args) {return 0;}
+static int cmd_scan_mem(char *args) {
+    scan_mem(args);
+    return 0;
+} 
 
 void npc_sdb_mainloop(void) {
   for (char *str; (str = rl_gets()) != NULL;) {

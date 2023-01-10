@@ -18,6 +18,10 @@ module RegisterFile #(ADDR_WIDTH = 1, DATA_WIDTH = 1) (
   assign rdata = (raddr == 0) ? 0: rf[raddr];
   assign rs1_reg = rf[5'b00001];
   assign r10_val = rf[5'b01010];
+
+  import "DPI-C" function void set_gpr_ptr(input logic [63:0] a []);
+  initial set_gpr_ptr(rf);
+
 endmodule
 /* verilator lint_off WIDTH */
 /* verilator lint_off UNUSED */

@@ -1,7 +1,6 @@
 #include <verilator.h>
 #include "Vtop.h"
 #include "Vtop__Dpi.h"
-#include "svdpi.h"
 
 vluint64_t sim_time = 0;
 svLogic is_ebreak = 0;
@@ -12,6 +11,11 @@ VerilatedVcdC *m_trace = new VerilatedVcdC;
 
 void init_npc_monitor(char *img);
 void npc_sdb_mainloop(void);
+
+uint64_t *cpu_gpr = NULL;
+extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
+  cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
+}
 
 int main(int argc, char *argv[]) {
     Verilated::traceEverOn(true);
