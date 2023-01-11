@@ -68,6 +68,7 @@ clean:
 	rm -rf .stamp.*;
 	rm -rf ./obj_dir
 	rm -rf waveform.vcd
+	rm -rf *log*.txt
 
 gdb: ./obj_dir/V$(MODULE)
 	@gdb --args  ./obj_dir/V$(MODULE) $(IMG)
