@@ -1,4 +1,6 @@
+#include <bits/types/FILE.h>
 #include <cpu.h>
+#include <cstdio>
 #include <memory.h>
 #include <common.h>
 #include <verilator.h>
@@ -11,6 +13,8 @@ extern Vtop *dut;
 extern vluint64_t sim_time;
 extern VerilatedVcdC *m_trace;
 
+static char log_buf[128];
+extern FILE *fp;
 static int npc_trap (svLogic *trap_state, uint32_t pc) {
     if (*trap_state == 0) {
         printf("%s, AT PC = 0x%08x\n", ASNI_FMT("Hit Good Trap", ASNI_FG_GREEN), pc);
@@ -51,6 +55,19 @@ void exec(uint32_t num) {
         if (dut->clk == 1 && sim_time >= SIM_BEGIN) {
             dut -> inst = pmem_read(dut -> pc_val, 4);
             i++;
+#ifdef CONFIG_ITRACE
+            char *p = log_buf;
+            uint8_t *inst = (uint8_t *)&(dut -> inst);
+            for (int i = 0; i < 4; i++) {
+                p += sprintf(p, " %02x", inst[i]);
+            }
+            memset(p, ' ', 1);
+            p++;
+            void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
+            disassemble(p, log_buf + sizeof(log_buf) - p, dut -> pc_val, (uint8_t *)&dut->inst, 4);
+            printf("%s\n", log_buf);
+            fprintf(fp, "%s\n", log_buf);
+#endif
         }
         m_trace -> dump(sim_time);
         sim_time++;

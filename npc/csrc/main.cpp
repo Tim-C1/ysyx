@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <verilator.h>
 #include "Vtop.h"
 #include "Vtop__Dpi.h"
@@ -17,6 +18,9 @@ extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
   cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
 
+const char *log_path = "/home/ctr/ysyx-workbench/npc/npc-log.txt";
+FILE *fp = fopen(log_path, "w");
+
 int main(int argc, char *argv[]) {
     Verilated::traceEverOn(true);
     dut->trace(m_trace, 5);
@@ -27,6 +31,7 @@ int main(int argc, char *argv[]) {
     svSetScope(scope);
     init_npc_monitor(argv[1]);
     npc_sdb_mainloop();
+    fclose(fp); 
     m_trace -> close();
     delete dut;
 }

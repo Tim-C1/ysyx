@@ -5,7 +5,6 @@
 !/nexus-am/*
 !/nanos-lite/*
 !/navy-apps/*
-!/npc/*
 !Makefile
 !README.md
 !.gitignore
@@ -14,4 +13,5 @@
 /nvboard
 !/am-kernels
 /home/ctr/ysyx-workbench/digital_circuit_exp/
-/home/ctr/ysyx-workbench/npc/obj_dir
+/npc/obj_dir
+/npc/obj_dir/*log*.txt

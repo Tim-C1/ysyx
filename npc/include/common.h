@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <stdlib.h>
 #include <cstring>
+#include <conf.h>
 
 /* terminal color */
 #define ASNI_FG_RED     "\33[1;31m"

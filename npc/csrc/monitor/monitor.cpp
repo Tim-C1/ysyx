@@ -1,6 +1,7 @@
 #include <common.h>
 #include <memory.h>
 
+void init_disasm(const char *triple);
 static void load_img(char *img_path){
     if (img_path == NULL) {
         printf("no img is given\n");
@@ -18,5 +19,9 @@ static void load_img(char *img_path){
 }
 
 void init_npc_monitor(char *img) {
+    /* load the binary program */
     load_img(img);
+
+    /* init llvm disassembler */
+    init_disasm("riscv64-pc-linux-gnu");
 }
