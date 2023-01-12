@@ -10,13 +10,8 @@ svLogic trap_state = 2;
 Vtop *dut = new Vtop;
 VerilatedVcdC *m_trace = new VerilatedVcdC;
 
-void init_npc_monitor(char *img);
+void init_npc_monitor(char *img, char *elf);
 void npc_sdb_mainloop(void);
-
-uint64_t *cpu_gpr = NULL;
-extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
-  cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
-}
 
 const char *log_path = "/home/ctr/ysyx-workbench/npc/npc-log.txt";
 FILE *fp = fopen(log_path, "w");
@@ -29,7 +24,7 @@ int main(int argc, char *argv[]) {
     const svScope scope = svGetScopeFromName("TOP.top");
     assert(scope);
     svSetScope(scope);
-    init_npc_monitor(argv[1]);
+    init_npc_monitor(argv[1], argv[2]);
     npc_sdb_mainloop();
     fclose(fp); 
     m_trace -> close();

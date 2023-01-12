@@ -24,7 +24,7 @@ image: $(IMAGE).elf
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 
 run: image
-	$(MAKE) -C $(NPC_HOME) waves IMG=$(IMAGE).bin
+	$(MAKE) -C $(NPC_HOME) waves IMG=$(IMAGE)
 
 gdb: image
-	$(MAKE) -C $(NPC_HOME) gdb IMG=$(IMAGE).bin
+	$(MAKE) -C $(NPC_HOME) gdb IMG=$(IMAGE)

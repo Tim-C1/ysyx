@@ -42,7 +42,7 @@ waves: waveform.vcd
 waveform.vcd: ./obj_dir/V$(MODULE)
 	@echo
 	@echo "### SIMULATING ###"
-	@./obj_dir/V$(MODULE) $(IMG)
+	@./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf
 
 ./obj_dir/V$(MODULE): .stamp.verilate
 	@echo
@@ -71,4 +71,4 @@ clean:
 	rm -rf *log*.txt
 
 gdb: ./obj_dir/V$(MODULE)
-	@gdb --args  ./obj_dir/V$(MODULE) $(IMG)
+	@gdb --args  ./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf
