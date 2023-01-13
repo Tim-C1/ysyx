@@ -4,6 +4,7 @@
 #include <cpu.h>
 
 extern void scan_mem(char *args);
+extern void reg_display(void);
 extern uint64_t *cpu_gpr;
 
 static int cmd_c(char *args);
@@ -12,7 +13,7 @@ static int cmd_q(char *args);
 static int cmd_info(char *args);
 static int cmd_scan_mem(char *args);
 
-void exec(uint32_t num);
+extern void npc_exec(uint32_t num);
 static char* rl_gets() {
   static char *line_read = NULL;
   line_read = readline("(npc) ");
@@ -40,23 +41,19 @@ static struct {
 
 
 static int cmd_c(char *args) {
-    exec(-1);
+   npc_exec(-1);
     return 0;
 }
 
 static int cmd_q(char *args) {return -1;}
 
 static int cmd_si(char *args) {
-    exec(1);
+    npc_exec(1);
     return 0;
 }
 
 static int cmd_info(char *args) {
-  int i;
-  assert(cpu_gpr);
-  for (i = 0; i < 32; i++) {
-    printf("gpr[%d] = 0x%lx\n", i, cpu_gpr[i]);
-  }
+  reg_display();
   return 0;
 }
 

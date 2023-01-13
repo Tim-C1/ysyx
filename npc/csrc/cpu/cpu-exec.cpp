@@ -1,5 +1,6 @@
 #include <bits/types/FILE.h>
 #include <cpu.h>
+#include <cstdint>
 #include <decode.h>
 #include <memory.h>
 #include <common.h>
@@ -12,14 +13,27 @@ extern svLogic trap_state;
 extern Vtop *dut;
 extern vluint64_t sim_time;
 extern VerilatedVcdC *m_trace;
+extern FILE *fp;
 
 uint64_t *cpu_gpr = NULL;
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
   cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
+extern void difftest_step(uint64_t pc);
 
+int npc_state = NPC_STOP;
+NPC_CPU_state npc_cpu_state = {}; //TODO: this is currently only used in difftest, encapsulate pc and reg instead of dut->inst, dut->pc_val in the future
 static char log_buf[128];
-extern FILE *fp;
+uint64_t halt_pc;
+uint64_t pc_p;
+
+void reg_display(void) {
+  int i;
+  assert(cpu_gpr);
+  for (i = 0; i < 32; i++) {
+    printf("gpr[%d] = 0x%lx\n", i, cpu_gpr[i]);
+  }
+}
 
 static uint64_t immI(uint32_t i) { return SEXT(BITS(i, 31, 20), 12); }
 static uint64_t immU(uint32_t i) { return SEXT(BITS(i, 31, 12), 20) << 12; }
@@ -77,17 +91,11 @@ static void save_ftrace_info(uint32_t inst, uint32_t pc) {
 #endif
 /* wrap around code for ftrace */
 
-static int npc_trap (svLogic *trap_state, uint32_t pc) {
-    if (*trap_state == 0) {
-        printf("%s, AT PC = 0x%08x\n", ASNI_FMT("Hit Good Trap", ASNI_FG_GREEN), pc);
-        return 0;
-    } else if (*trap_state == 1) {
-        printf("%s, AT PC = 0x%08x\n", ASNI_FMT("Hit bad Trap", ASNI_FG_RED), pc);
-        return 1;
-    } else {
-        printf("Program is still running, check trap functions \n");
-        return 1;
+static void save_reg(uint64_t pc) {
+    for (int i = 0; i < 32; i++) {
+        npc_cpu_state.gpr[i] = cpu_gpr[i];
     }
+    npc_cpu_state.pc = pc;
 }
 
 static void pc_reset (Vtop *dut, vluint64_t &sim_time) {
@@ -102,32 +110,26 @@ void exec(uint32_t num) {
     while (i < num) {
         dut -> clk ^= 1;
         dut -> eval();
+        if (dut->clk == 1 && sim_time >= 8) { // finish executing one instruction
+            save_reg(dut->pc_val);
+            difftest_step(pc_p);
+        }
         ebreak_detect(&is_ebreak);
         if (is_ebreak == 1) {
             trap(&trap_state);
-#ifdef CONFIG_FTRACE    
-            for (int i = 0; i < ftrace_info_cnt; i++) {
-                ftrace_info ftrace_info = ftrace_buf[i];
-                if (ftrace_info.func_name != NULL) {
-                    switch (ftrace_info.jump_type) {
-                        case 1: printf("CALL (%s@%#8lx)\n", ftrace_info.func_name, ftrace_info.jump_addr); break;
-                        case 2: printf("RET (%s@%#8lx)\n", ftrace_info.func_name, ftrace_info.jump_addr); break;
-                        default: break;
-                    }
-                }
-            }
-#endif
-            int trap_flag = npc_trap(&trap_state, dut -> pc_val);
-            if (trap_flag == 0) {
-                break;
+            if (trap_state == 0) {
+                npc_state = NPC_END;
             } else {
-                exit(EXIT_FAILURE);
+                npc_state = NPC_ABORT;
             }
+            halt_pc = dut->pc_val;
+            break;
         }
         pc_reset(dut, sim_time);
 
         if (dut->clk == 1 && sim_time >= SIM_BEGIN) {
             dut -> inst = pmem_read(dut -> pc_val, 4);
+            pc_p = dut -> pc_val;
             i++;
 #ifdef CONFIG_ITRACE
             char *p = log_buf;
@@ -147,5 +149,40 @@ void exec(uint32_t num) {
         }
         m_trace -> dump(sim_time);
         sim_time++;
+    }
+}
+
+void execute(uint32_t num) {
+    for (;num > 0; num --) {
+        exec(1);
+        if (npc_state != NPC_RUNNING) {
+            break;
+        }
+    }
+}
+
+void npc_exec(uint32_t num) {
+    switch (npc_state) {
+        case NPC_END: case NPC_ABORT:
+          printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
+          return;
+        default: npc_state = NPC_RUNNING;
+    }
+    execute(num);
+#ifdef CONFIG_FTRACE    
+    for (int i = 0; i < ftrace_info_cnt; i++) {
+        ftrace_info ftrace_info = ftrace_buf[i];
+        if (ftrace_info.func_name != NULL) {
+            switch (ftrace_info.jump_type) {
+                case 1: printf("CALL (%s@%#8lx)\n", ftrace_info.func_name, ftrace_info.jump_addr); break;
+                case 2: printf("RET (%s@%#8lx)\n", ftrace_info.func_name, ftrace_info.jump_addr); break;
+                default: break;
+            }
+        }
+    }
+#endif
+    switch (npc_state) {
+        case NPC_ABORT: printf("npc %s at pc: 0x%016lx\n", ASNI_FMT("ABORT", ASNI_FG_RED), halt_pc); break;
+        case NPC_END: printf("npc %s at pc: 0x%016lx\n", ASNI_FMT("HIT GOOD TRAP", ASNI_FG_GREEN), halt_pc);
     }
 }

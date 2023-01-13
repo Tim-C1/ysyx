@@ -24,6 +24,10 @@ endif
 CXXFLAGS += $(addprefix -CFLAGS , -ggdb3)
 # LDFLAGS += $(addprefix -LDFLAGS , -fsanitize=address)
 
+DIFFSO = /home/ctr/ysyx-workbench/nemu/build/riscv64-nemu-interpreter-so
+
+CXXFLAGS += $(addprefix -CFLAGS , -fpermissive)
+LDFLAGS += $(addprefix -LDFLAGS , -fpermissive)
 .PHONY:sim
 sim: waveform.vcd $(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 
@@ -42,7 +46,7 @@ waves: waveform.vcd
 waveform.vcd: ./obj_dir/V$(MODULE)
 	@echo
 	@echo "### SIMULATING ###"
-	@./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf
+	@./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf $(DIFFSO)
 
 ./obj_dir/V$(MODULE): .stamp.verilate
 	@echo
@@ -52,8 +56,6 @@ waveform.vcd: ./obj_dir/V$(MODULE)
 .stamp.verilate:
 	@echo
 	@echo "### VERILATING ###"
-	@echo $(CXXFLAGS)
-	@echo $(LDFLAGS)
 	verilator -Wall --trace -cc $(VSRC_DIR)/$(MODULE).v -top $(MODULE) $(VFLAGS)\
    	--exe $(SRCS)\
    	$(CXXFLAGS) $(LDFLAGS)
@@ -71,4 +73,4 @@ clean:
 	rm -rf *log*.txt
 
 gdb: ./obj_dir/V$(MODULE)
-	@gdb --args  ./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf
+	@gdb --args  ./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf $(DIFFSO)

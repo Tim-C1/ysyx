@@ -1,0 +1,2 @@
+#define DIFFTEST_TO_REF 1
+#define DIFFTEST_TO_DUT 0

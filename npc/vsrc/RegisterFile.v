@@ -13,7 +13,10 @@ module RegisterFile #(ADDR_WIDTH = 1, DATA_WIDTH = 1) (
  // reg [DATA_WIDTH-1:0] rf [ADDR_WIDTH-1:0];
   reg [DATA_WIDTH-1:0] rf [31:0];
   always @(posedge clk) begin
-    if (wen) rf[waddr] <= wdata;
+      if (wen) begin
+          rf[waddr] <= wdata;
+          rf[0] <= 0;
+      end
   end
   assign rdata = (raddr == 0) ? 0: rf[raddr];
   assign rs1_reg = rf[5'b00001];

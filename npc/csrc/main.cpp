@@ -10,7 +10,7 @@ svLogic trap_state = 2;
 Vtop *dut = new Vtop;
 VerilatedVcdC *m_trace = new VerilatedVcdC;
 
-void init_npc_monitor(char *img, char *elf);
+void init_npc_monitor(char *img, char *elf, char *ref_so_file);
 void npc_sdb_mainloop(void);
 
 const char *log_path = "/home/ctr/ysyx-workbench/npc/npc-log.txt";
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     const svScope scope = svGetScopeFromName("TOP.top");
     assert(scope);
     svSetScope(scope);
-    init_npc_monitor(argv[1], argv[2]);
+    init_npc_monitor(argv[1], argv[2], argv[3]);
     npc_sdb_mainloop();
     fclose(fp); 
     m_trace -> close();
