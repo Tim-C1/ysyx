@@ -16,7 +16,6 @@ LDFLAGS   += --gc-sections -e _start
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 
 NPC_HOME = /home/ctr/ysyx-workbench/npc
-.PHONY: $(AM_HOME)/am/src/riscv/npc/trm.c
 
 image: $(IMAGE).elf
 	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).txt
@@ -24,7 +23,11 @@ image: $(IMAGE).elf
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 
 run: image
-	$(MAKE) -C $(NPC_HOME) waves IMG=$(IMAGE)
+	$(MAKE) -C $(NPC_HOME) run IMG=$(IMAGE)
 
 gdb: image
 	$(MAKE) -C $(NPC_HOME) gdb IMG=$(IMAGE)
+
+clean:
+	$(MAKE) -C $(NPC_HOME) clean
+.PHONY: $(AM_HOME)/am/src/riscv/npc/trm.c clean

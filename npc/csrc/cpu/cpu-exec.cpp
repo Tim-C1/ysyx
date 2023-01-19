@@ -9,24 +9,26 @@
 
 extern svLogic is_ebreak;
 extern svLogic trap_state;
-
 extern Vtop *dut;
 extern vluint64_t sim_time;
 extern VerilatedVcdC *m_trace;
-extern FILE *fp;
-
+extern FILE *log_fp;
 uint64_t *cpu_gpr = NULL;
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
   cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
 extern void difftest_step(uint64_t pc);
+extern NPC_state npc_state;
 
-int npc_state = NPC_STOP;
-NPC_CPU_state npc_cpu_state = {}; //TODO: this is currently only used in difftest, encapsulate pc and reg instead of dut->inst, dut->pc_val in the future
 static char log_buf[128];
-uint64_t halt_pc;
-uint64_t pc_p;
+static uint64_t pc_p; // save previous pc value for difftest to show the wrong instruction position
+static uint64_t immI(uint32_t i) { return SEXT(BITS(i, 31, 20), 12); }
+static uint64_t immU(uint32_t i) { return SEXT(BITS(i, 31, 12), 20) << 12; }
+static uint64_t immS(uint32_t i) { return (SEXT(BITS(i, 31, 25), 7) << 5) | BITS(i, 11, 7); }
+static uint64_t immJ(uint32_t i) { return (SEXT(BITS(i, 31, 31), 1) << 20) | (BITS(i, 19, 12) << 12) | (BITS(i, 20, 20) << 11) | (BITS(i, 30, 25) << 5) | (BITS(i, 24, 21) << 1); }
+static uint64_t immB(uint32_t i) { return (SEXT(BITS(i, 31, 31), 1) << 12) | (BITS(i, 7, 7) << 11) | (BITS(i, 30, 25) << 5) | (BITS(i, 11, 8) << 1); }
 
+NPC_CPU_state npc_cpu_state = {};
 void reg_display(void) {
   int i;
   assert(cpu_gpr);
@@ -35,12 +37,6 @@ void reg_display(void) {
   }
 }
 
-static uint64_t immI(uint32_t i) { return SEXT(BITS(i, 31, 20), 12); }
-static uint64_t immU(uint32_t i) { return SEXT(BITS(i, 31, 12), 20) << 12; }
-static uint64_t immS(uint32_t i) { return (SEXT(BITS(i, 31, 25), 7) << 5) | BITS(i, 11, 7); }
-static uint64_t immJ(uint32_t i) { return (SEXT(BITS(i, 31, 31), 1) << 20) | (BITS(i, 19, 12) << 12) | (BITS(i, 20, 20) << 11) | (BITS(i, 30, 25) << 5) | (BITS(i, 24, 21) << 1); }
-static uint64_t immB(uint32_t i) { return (SEXT(BITS(i, 31, 31), 1) << 12) | (BITS(i, 7, 7) << 11) | (BITS(i, 30, 25) << 5) | (BITS(i, 11, 8) << 1); }
-
 /* wrap around code for ftrace */
 #ifdef CONFIG_FTRACE
 extern char *get_func_symbol_by_address(uint64_t addr, int type);
@@ -48,7 +44,7 @@ typedef struct ftrace_info {
     uint64_t jump_addr;
     int jump_type; // 1 CALL; 2 RETURN
     char* func_name;
-} ftrace_info; 
+} ftrace_info;
 
 ftrace_info ftrace_buf[1024]; // store ftrace info
 int ftrace_info_cnt = 0;
@@ -117,34 +113,31 @@ void exec(uint32_t num) {
         ebreak_detect(&is_ebreak);
         if (is_ebreak == 1) {
             trap(&trap_state);
-            if (trap_state == 0) {
-                npc_state = NPC_END;
-            } else {
-                npc_state = NPC_ABORT;
-            }
-            halt_pc = dut->pc_val;
+            npc_state.state = NPC_END;
+            npc_state.halt_ret = trap_state;
+            npc_state.halt_pc = dut->pc_val;
             break;
         }
         pc_reset(dut, sim_time);
 
         if (dut->clk == 1 && sim_time >= SIM_BEGIN) {
-            dut -> inst = pmem_read(dut -> pc_val, 4);
+            uint32_t instruction = pmem_read(dut -> pc_val, 4);
             pc_p = dut -> pc_val;
             i++;
 #ifdef CONFIG_ITRACE
             char *p = log_buf;
-            uint8_t *inst = (uint8_t *)&(dut -> inst);
+            uint8_t *inst = (uint8_t *)&(instruction);
             for (int i = 0; i < 4; i++) {
                 p += sprintf(p, " %02x", inst[i]);
             }
             memset(p, ' ', 1);
             p++;
             void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
-            disassemble(p, log_buf + sizeof(log_buf) - p, dut -> pc_val, (uint8_t *)&dut->inst, 4);
-            fprintf(fp, "%s\n", log_buf);
+            disassemble(p, log_buf + sizeof(log_buf) - p, dut -> pc_val, (uint8_t *)&instruction, 4);
+            fprintf(log_fp, "%s\n", log_buf);
 #endif
 #ifdef CONFIG_FTRACE
-            save_ftrace_info(dut->inst, dut->pc_val);
+            save_ftrace_info(instruction, dut->pc_val);
 #endif
         }
         m_trace -> dump(sim_time);
@@ -155,21 +148,21 @@ void exec(uint32_t num) {
 void execute(uint32_t num) {
     for (;num > 0; num --) {
         exec(1);
-        if (npc_state != NPC_RUNNING) {
+        if (npc_state.state != NPC_RUNNING) {
             break;
         }
     }
 }
 
 void npc_exec(uint32_t num) {
-    switch (npc_state) {
+    switch (npc_state.state) {
         case NPC_END: case NPC_ABORT:
           printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
           return;
-        default: npc_state = NPC_RUNNING;
+        default: npc_state.state = NPC_RUNNING;
     }
     execute(num);
-#ifdef CONFIG_FTRACE    
+#ifdef CONFIG_FTRACE
     for (int i = 0; i < ftrace_info_cnt; i++) {
         ftrace_info ftrace_info = ftrace_buf[i];
         if (ftrace_info.func_name != NULL) {
@@ -181,8 +174,9 @@ void npc_exec(uint32_t num) {
         }
     }
 #endif
-    switch (npc_state) {
-        case NPC_ABORT: printf("npc %s at pc: 0x%016lx\n", ASNI_FMT("ABORT", ASNI_FG_RED), halt_pc); break;
-        case NPC_END: printf("npc %s at pc: 0x%016lx\n", ASNI_FMT("HIT GOOD TRAP", ASNI_FG_GREEN), halt_pc);
+    switch (npc_state.state) {
+        case NPC_RUNNING: npc_state.state = NPC_STOP; break;
+        case NPC_ABORT: printf("npc %s at pc: 0x%016lx\n", ASNI_FMT("ABORT", ASNI_FG_RED), npc_state.halt_pc); break;
+        case NPC_END: printf("npc %s at pc: 0x%016lx\n", ASNI_FMT("HIT GOOD TRAP", ASNI_FG_GREEN), npc_state.halt_pc);
     }
 }

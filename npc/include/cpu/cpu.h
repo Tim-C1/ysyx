@@ -14,5 +14,11 @@ typedef struct {
 } riscv64_NPC_CPU_state;
 
 #define NPC_CPU_state riscv64_NPC_CPU_state
-enum { NPC_RUNNING, NPC_STOP, NPC_ABORT, NPC_END};
+enum { NPC_RUNNING, NPC_STOP, NPC_ABORT, NPC_END, NPC_QUIT};
+
+typedef struct {
+  int state;
+  uint64_t halt_pc;
+  int halt_ret;
+} NPC_state;
 #endif

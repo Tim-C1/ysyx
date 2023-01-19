@@ -74,3 +74,6 @@ clean:
 
 gdb: ./obj_dir/V$(MODULE)
 	@gdb --args  ./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf $(DIFFSO)
+
+run: ./obj_dir/V$(MODULE)
+	 ./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf $(DIFFSO) batch

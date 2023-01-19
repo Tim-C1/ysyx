@@ -6,6 +6,7 @@
 extern void scan_mem(char *args);
 extern void reg_display(void);
 extern uint64_t *cpu_gpr;
+extern int is_batch_mode;
 
 static int cmd_c(char *args);
 static int cmd_si(char *args);
@@ -39,13 +40,17 @@ static struct {
 
 #define NR_CMD (int)(sizeof(cmd_table) / sizeof(cmd_table[0]))
 
-
 static int cmd_c(char *args) {
    npc_exec(-1);
-    return 0;
+   return 0;
 }
 
-static int cmd_q(char *args) {return -1;}
+static int cmd_q(char *args) {
+    // if (!(npc_state == NPC_ABORT) && !(npc_state == NPC_END && halt_ret == 1)) {
+    //     npc_state = NPC_QUIT;
+    // }
+    return -1;
+}
 
 static int cmd_si(char *args) {
     npc_exec(1);
@@ -63,6 +68,10 @@ static int cmd_scan_mem(char *args) {
 } 
 
 void npc_sdb_mainloop(void) {
+  if (is_batch_mode) {
+    npc_exec(-1);
+    return;
+  }
   for (char *str; (str = rl_gets()) != NULL;) {
     char *str_end = str + strlen(str);
 

@@ -11,8 +11,8 @@ void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
 extern NPC_CPU_state npc_cpu_state;
 extern svLogic trap_state;
-extern int npc_state;
-extern uint64_t halt_pc;
+extern NPC_state npc_state;
+
 static bool is_skip_ref = false;
 static int skip_dut_nr_inst = 0;
 
@@ -50,8 +50,8 @@ static void checkregs(NPC_CPU_state *ref, uint64_t pc) {
         same = 0;
     }
     if (!same) {
-        npc_state = NPC_ABORT;
-        halt_pc = pc;
+        npc_state.state= NPC_ABORT;
+        npc_state.halt_pc = pc;
         show_ref_and_dut_regs(ref);
     }
 }
