@@ -5,7 +5,7 @@
 static Elf64_Ehdr ehdr;
 static Elf64_Shdr shdrs[1024];
 static char shstrtab[1024];
-static char strtab[1024];
+static char strtab[10240];
 static Elf64_Sym symtab[1024];
 static int symtab_num;
 
