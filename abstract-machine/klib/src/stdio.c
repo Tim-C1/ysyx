@@ -1,94 +1,148 @@
 #include <am.h>
-#include <klib-macros.h>
 #include <klib.h>
+#include <klib-macros.h>
 #include <stdarg.h>
-#include <string.h>
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
-static void strrev(char *str);
 
-int itoa(int num, char *str);
+typedef long long ll;
 
-int printf(const char *fmt, ...) { panic("Not implemented"); }
+inline bool typechar(size_t *rem) {
+  --(*rem);
+  return rem == 0;
+}
 
-int vsprintf(char *out, const char *fmt, va_list ap) {
-  panic("Not implemented");
+char* num2str(char *str, ll num, ll base, size_t *rem) {
+  char tmp[32];
+  if (num < 0) {
+    *str++ = '-';
+    num = -num;
+    if (typechar(rem)) return str;
+  }
+  int len = 0;
+  if (num == 0) tmp[len++] = 0;
+  else while (num) {
+    tmp[len++] = num % base;
+    num = num / base;
+  }
+  while (len-- > 0) {
+    if (tmp[len] < 10) *str++ = tmp[len] + '0';
+    else *str++ = tmp[len] - 10 + 'A';
+    if (typechar(rem)) return str;
+  }
+  return str;
+}
+
+int printf(const char *fmt, ...) {
+  int n;
+  char buf[8192];
+  va_list args;
+  va_start(args, fmt);
+  n = vsprintf(buf, fmt, args);
+  va_end(args);
+  putstr(buf);
+  return n;
 }
 
 int sprintf(char *out, const char *fmt, ...) {
-  int cnt = 0;
-  va_list ap;
+  int n;
+  va_list args;
+  va_start(args, fmt);
+  n = vsprintf(out, fmt, args);
+  va_end(args);
+  return n;
+}
+
+int vsprintf(char *out, const char *fmt, va_list ap) {
+  size_t inf = 0x3f3f3f3f;
   char *s;
-  int d;
-  char *tmp = out;
-  va_start(ap, fmt);
-  while (*fmt) {
-    if (*fmt == '%') {
-      // must have a specifier
-      fmt++;
-      switch (*fmt) {
-      case 's':
-        s = va_arg(ap, char *);
-        strcpy(tmp, s);
-        tmp = tmp + strlen(s);
+  char *str;
+  for (str = out; *fmt; fmt++) {
+    if (*fmt != '%') {
+      *str++ = *fmt;
+      continue;
+    }
+    fmt++;
+    switch (*fmt) {
+      case 'c':
+        *str++ = va_arg(ap, int);
         break;
       case 'd':
-        d = va_arg(ap, int);
-        tmp = tmp + itoa(d, tmp);
+        // cannot handle %02d etc. maybe fix future.
+        str = num2str(str, va_arg(ap, ll), 10, &inf);
         break;
-      }
-      fmt++;
-    } else {
-      *tmp++ = *fmt++;
+      case 'p':
+        str = num2str(str, va_arg(ap, ll), 16, &inf);
+        break;
+      case 's':
+        s = va_arg(ap, char *);
+        while (*s) *str++ = *s++;
+        break;
+      default:
+        if (*fmt != '%') *str++ = '%';
+        if (*fmt) *str++ = *fmt;
+        else fmt--;
+        break;
     }
   }
-  *tmp = '\0';
-  cnt = strlen(out);
-  return cnt;
+  *str = '\0';
+  return str - out;
 }
 
 int snprintf(char *out, size_t n, const char *fmt, ...) {
-  panic("Not implemented");
+  va_list args;
+  va_start(args, fmt);
+  n = vsnprintf(out, n, fmt, args);
+  va_end(args);
+  return n;
 }
 
 int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
-  panic("Not implemented");
+  char *s;
+  char *str;
+  for (str = out; *fmt; fmt++) {
+    if (*fmt != '%') {
+      *str++ = *fmt;
+      continue;
+    }
+    fmt++;
+    switch (*fmt) {
+      case 'c':
+        *str++ = va_arg(ap, int);
+        if (typechar(&n)) break;
+        break;
+      case 'd':
+        // cannot handle %02d etc. maybe fix future.
+        str = num2str(str, va_arg(ap, ll), 10, &n);
+        if (n == 0) break;
+        break;
+      case 'p':
+        str = num2str(str, va_arg(ap, ll), 16, &n);
+        if (n == 0) break;
+        break;
+      case 's':
+        s = va_arg(ap, char *);
+        while (*s) {
+          *str++ = *s++;
+          if (typechar(&n)) break;
+        }
+        if (n == 0) break;
+        break;
+      default:
+        if (*fmt != '%') {
+          *str++ = '%';
+          if (typechar(&n)) break;
+        }
+        if (*fmt) {
+          *str++ = *fmt;
+          if (typechar(&n)) break;
+        }
+        else fmt--;
+        break;
+    }
+  }
+  *str = '\0';
+  return str - out;
 }
 
-/* decimal number to string */
-int itoa(int num, char *str) {
-  char sign = '+';
-  int cnt = 0;
-  int digit;
-  if (num < 0) {
-    num = -num;
-    sign = '-';
-  }
-  do {
-    digit = num % 10;
-    *(str + cnt) = (char)('0' + digit);
-    num /= 10;
-    cnt++;
-  } while (num != 0);
-  if (sign == '-') {
-    *(str + cnt) = sign;
-    cnt++;
-  }
-  *(str + cnt) = '\0';
-  strrev(str);
-  return cnt;
-}
-
-/* reverse a string */
-static void strrev(char *str) {
-  int i;
-  int j;
-  char a;
-  int len = strlen(str);
-  for (i = 0, j = len - 1; i < j; i++, j--) {
-    a = str[i];
-    str[i] = str[j];
-    str[j] = a;
-  }
-}
 #endif

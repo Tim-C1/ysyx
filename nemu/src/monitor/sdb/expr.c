@@ -191,7 +191,7 @@ int get_op(int p, int q) {
     /* op stores all the operator in order and loc_op stores the location in the expression of each operator */
     int idx = p;
     Token op[100];
-    int loc_op[100];
+    int loc_op[100] = { 0 };
     int num = 0;
     
     while (idx <= q) {
@@ -226,20 +226,6 @@ int get_op(int p, int q) {
     Token pivot;
     pivot = op[idx_op];
     int pivot_loc = loc_op[idx_op];
- /*   while (++idx_op < num) {
-        if (pivot.type == '+' || pivot.type == '-') {
-            if (op[idx_op].type == '*' || op[idx_op].type == '/') {
-                ;
-            } else {
-                pivot = op[idx_op];
-                pivot_loc = loc_op[idx_op];
-            }
-        } else {
-            pivot = op[idx_op];
-            pivot_loc = loc_op[idx_op];
-        }
-    } */
-
     while (++idx_op < num) {
         /* && has lowest priority, only when the next is also && will the pivot change */
         if (pivot.type == TK_AND) {
