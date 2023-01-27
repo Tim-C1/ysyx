@@ -18,6 +18,7 @@ extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
   cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
 extern void difftest_step(uint64_t pc);
+extern void difftest_skip_ref();
 extern NPC_state npc_state;
 
 static char log_buf[128];
@@ -46,7 +47,7 @@ typedef struct ftrace_info {
     char* func_name;
 } ftrace_info;
 
-ftrace_info ftrace_buf[1024]; // store ftrace info
+ftrace_info ftrace_buf[102400]; // store ftrace info
 int ftrace_info_cnt = 0;
 static int is_ret(uint32_t s) { return (s == 0x8067); } // RET
 static int is_jump(uint32_t s) {
@@ -108,7 +109,7 @@ void exec(uint32_t num) {
         dut -> eval();
         if (dut->clk == 1 && sim_time >= 8) { // finish executing one instruction
             save_reg(dut->pc_val);
-            difftest_step(pc_p);
+            /*difftest_step(pc_p);*/
         }
         ebreak_detect(&is_ebreak);
         if (is_ebreak == 1) {

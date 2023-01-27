@@ -1,8 +1,10 @@
 #include <cstdint>
 #include <memory.h>
+#include <device.h>
 
 static uint8_t pmem[CONFIG_MSIZE] = {};
 uint8_t *guest_to_host(uint64_t paddr) { return pmem + paddr - CONFIG_MBASE; }
+extern uint64_t get_time();
 
 static inline uint64_t host_read(void *addr, int len) {
   switch (len) {
@@ -72,7 +74,11 @@ void scan_mem(char *args) {
 
 extern "C" void pmem_read(long long raddr, long long *rdata) {
     /* always read from "raddr & ~0x7ull" 8 bytes to rdata */
-    *rdata = pmem_read(raddr & ~0x7ull, 8);
+    if ((uint64_t)raddr == RTC_BASE) {
+        *rdata = get_time();
+    } else {
+        *rdata = pmem_read(raddr & ~0x7ull, 8);
+    }
 #ifdef MTRACE
     printf("MEM READ: addr: %#016llx, data: %#016llx\n", raddr, *rdata);
 #endif
@@ -84,20 +90,24 @@ extern "C" void pmem_write(long long waddr, long long wdata, char wmask) {
     int loc = 0;
     unsigned char wmask_u = (unsigned char) wmask;
     uint64_t padd_waddr = waddr & ~0x7ull;
-    while (loc < 8) {
-        bool shift_bit = wmask_u & (unsigned char) 1;
-        if (shift_bit) {
-            while (1) {
-                if (wmask_u == 0) break;
-                wmask_u = wmask_u >> 1;
-                len++;
-            }
-            break;
-        }     // find the byte location to store data;
-        wmask_u >>= 1;
-        loc++;
+    if ((uint64_t)waddr == SERIAL_BASE) {
+        putchar((int)wdata);
+    } else {
+        while (loc < 8) {
+            bool shift_bit = wmask_u & (unsigned char) 1;
+            if (shift_bit) {
+                while (1) {
+                    if (wmask_u == 0) break;
+                    wmask_u = wmask_u >> 1;
+                    len++;
+                }
+                break;
+            }     // find the byte location to store data;
+            wmask_u >>= 1;
+            loc++;
+        }
+        pmem_write(padd_waddr + loc, len, wdata);
     }
-    pmem_write(padd_waddr + loc, len, wdata);
 #ifdef MTRACE
     printf("MEM WRITE: addr: %#016llx, len: %d, data: %#016llx\n", waddr + loc, len, wdata);
 #endif

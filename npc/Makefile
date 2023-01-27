@@ -73,7 +73,7 @@ clean:
 	rm -rf *log*.txt
 
 gdb: ./obj_dir/V$(MODULE)
-	@gdb --args  ./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf $(DIFFSO)
+	@gdb --args  ./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf $(DIFFSO) batch
 
 run: ./obj_dir/V$(MODULE)
 	 ./obj_dir/V$(MODULE) $(IMG).bin $(IMG).elf $(DIFFSO) batch

@@ -2,10 +2,10 @@
 #include <common.h>
 
 static Elf64_Ehdr ehdr;
-static Elf64_Shdr shdrs[1024];
-static char shstrtab[1024];
-static char strtab[1024];
-static Elf64_Sym symtab[1024];
+static Elf64_Shdr shdrs[10240];
+static char shstrtab[10240];
+static char strtab[102400];
+static Elf64_Sym symtab[10240];
 static int symtab_num;
 
 static bool elf_check_file(Elf64_Ehdr *hdr) {
