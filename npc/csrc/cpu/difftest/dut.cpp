@@ -33,7 +33,7 @@ void difftest_skip_ref() {
 static void show_ref_and_dut_regs(NPC_CPU_state *ref) {
     for (int i = 0; i < 32; i++) {
         printf("npc: gpr[%d] = 0x%0lx\tnemu: gpr[%d] = 0x%0lx\n", i, npc_cpu_state.gpr[i], i, ref->gpr[i]);
-    } 
+    }
     printf("npc: pc = 0x%lx\tnemu: pc = 0x%lx\n", npc_cpu_state.pc, ref->pc);
 }
 

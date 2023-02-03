@@ -1,4 +1,3 @@
-#include <cstdint>
 #include <memory.h>
 #include <device.h>
 
@@ -74,14 +73,14 @@ void scan_mem(char *args) {
 
 extern "C" void pmem_read(long long raddr, long long *rdata) {
     /* always read from "raddr & ~0x7ull" 8 bytes to rdata */
+#ifdef CONFIG_MTRACE
+    printf("MEM READ: addr: %#016llx, data: %#016llx\n", raddr, *rdata);
+#endif
     if ((uint64_t)raddr == RTC_BASE) {
         *rdata = get_time();
     } else {
         *rdata = pmem_read(raddr & ~0x7ull, 8);
     }
-#ifdef MTRACE
-    printf("MEM READ: addr: %#016llx, data: %#016llx\n", raddr, *rdata);
-#endif
 }
 
 extern "C" void pmem_write(long long waddr, long long wdata, char wmask) {
@@ -90,6 +89,9 @@ extern "C" void pmem_write(long long waddr, long long wdata, char wmask) {
     int loc = 0;
     unsigned char wmask_u = (unsigned char) wmask;
     uint64_t padd_waddr = waddr & ~0x7ull;
+#ifdef CONFIG_MTRACE
+    printf("MEM WRITE: addr: %#016llx, len: %d, data: %#016llx\n", waddr + loc, len, wdata);
+#endif
     if ((uint64_t)waddr == SERIAL_BASE) {
         putchar((int)wdata);
     } else {
@@ -108,7 +110,4 @@ extern "C" void pmem_write(long long waddr, long long wdata, char wmask) {
         }
         pmem_write(padd_waddr + loc, len, wdata);
     }
-#ifdef MTRACE
-    printf("MEM WRITE: addr: %#016llx, len: %d, data: %#016llx\n", waddr + loc, len, wdata);
-#endif
 }
