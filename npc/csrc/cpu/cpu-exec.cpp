@@ -19,6 +19,8 @@ extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
 }
 extern void difftest_step(uint64_t pc);
 extern void difftest_skip_ref();
+
+extern void device_update();
 extern NPC_state npc_state;
 
 static char log_buf[128];
@@ -152,6 +154,7 @@ void execute(uint32_t num) {
         if (npc_state.state != NPC_RUNNING) {
             break;
         }
+        device_update();
     }
 }
 
