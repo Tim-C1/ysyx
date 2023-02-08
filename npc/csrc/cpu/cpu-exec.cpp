@@ -29,7 +29,7 @@ static uint64_t immS(uint32_t i) { return (SEXT(BITS(i, 31, 25), 7) << 5) | BITS
 static uint64_t immJ(uint32_t i) { return (SEXT(BITS(i, 31, 31), 1) << 20) | (BITS(i, 19, 12) << 12) | (BITS(i, 20, 20) << 11) | (BITS(i, 30, 25) << 5) | (BITS(i, 24, 21) << 1); }
 static uint64_t immB(uint32_t i) { return (SEXT(BITS(i, 31, 31), 1) << 12) | (BITS(i, 7, 7) << 11) | (BITS(i, 30, 25) << 5) | (BITS(i, 11, 8) << 1); }
 
-NPC_CPU_state npc_cpu_state = {};
+NPC_CPU_state cpu = {};
 void reg_display(void) {
   int i;
   assert(cpu_gpr);
@@ -90,9 +90,9 @@ static void save_ftrace_info(uint32_t inst, uint32_t pc) {
 
 static void save_reg(uint64_t pc) {
     for (int i = 0; i < 32; i++) {
-        npc_cpu_state.gpr[i] = cpu_gpr[i];
+        cpu.gpr[i] = cpu_gpr[i];
     }
-    npc_cpu_state.pc = pc;
+    cpu.pc = pc;
 }
 
 static void pc_reset (Vtop *dut, vluint64_t &sim_time) {

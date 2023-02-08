@@ -3,7 +3,7 @@
 #include "Vtop.h"
 #include "Vtop__Dpi.h"
 #include "svdpi.h"
-#include <sys/types.h>
+#include <common.h>
 
 #define SIM_BEGIN 5
 #define FIRST_INST_EXECUTION 7
@@ -13,12 +13,5 @@ typedef struct {
   uint64_t pc;
 } riscv64_NPC_CPU_state;
 
-#define NPC_CPU_state riscv64_NPC_CPU_state
-enum { NPC_RUNNING, NPC_STOP, NPC_ABORT, NPC_END, NPC_QUIT};
-
-typedef struct {
-  int state;
-  uint64_t halt_pc;
-  int halt_ret;
-} NPC_state;
+extern riscv64_NPC_CPU_state cpu;
 #endif

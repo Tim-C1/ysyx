@@ -8,11 +8,16 @@
 #include <stdlib.h>
 #include <cstring>
 #include <conf.h>
+#include <macro.h>
 
-/* terminal color */
-#define ASNI_FG_RED     "\33[1;31m"
-#define ASNI_FG_GREEN   "\33[1;32m"
-#define ASNI_NONE       "\33[0m"
-#define ASNI_FMT(str, fmt) fmt str ASNI_NONE
+typedef uint64_t paddr_t;
+typedef uint64_t vaddr_t;
+typedef uint64_t word_t;
+typedef uint16_t ioaddr_t;
+
+#define FMT_WORD "0x%016lx"
+#define FMT_PADDR "0x%016lx"
+
+#include <debug.h>
 #endif
 
