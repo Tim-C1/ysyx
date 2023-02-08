@@ -10,6 +10,7 @@ CINC_PATH += $(shell pwd)/include/
 
 CXXFLAGS += $(addprefix -CFLAGS -I, $(dir $(abspath $(shell find $(CINC_PATH) -name "*.h"))))
 CXXFLAGS += -CFLAGS -lreadline
+CXXFLAGS += -CFLAGS -lSDL2
 VFLAGS += $(addprefix -I, $(VINC_PATH))
 
 # link llvm libs
@@ -28,6 +29,7 @@ DIFFSO = /home/ctr/ysyx-workbench/nemu/build/riscv64-nemu-interpreter-so
 
 CXXFLAGS += $(addprefix -CFLAGS , -fpermissive)
 LDFLAGS += $(addprefix -LDFLAGS , -fpermissive)
+LDFLAGS += -LDFLAGS -lSDL2
 .PHONY:sim
 sim: waveform.vcd $(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 

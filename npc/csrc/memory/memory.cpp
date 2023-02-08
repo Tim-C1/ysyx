@@ -1,41 +1,14 @@
 #include <memory.h>
+#include <common.h>
+#include <cpu.h>
+#include <device/mmio.h>
 #include <device.h>
 
 static uint8_t pmem[CONFIG_MSIZE] = {};
 uint8_t *guest_to_host(uint64_t paddr) { return pmem + paddr - CONFIG_MBASE; }
-extern uint64_t get_time();
-
-static inline uint64_t host_read(void *addr, int len) {
-  switch (len) {
-  case 1:
-    return *(uint8_t *)addr;
-  case 2:
-    return *(uint16_t *)addr; case 4:
-    return *(uint32_t *)addr;
-  case 8:
-    return *(uint64_t *)addr;
-  default:
-    return 0;
-  }
-}
-
-static inline void host_write(void *addr, int len, uint64_t data) {
-  switch (len) {
-  case 1:
-    *(uint8_t *)addr = data;
-    return;
-  case 2:
-    *(uint16_t *)addr = data;
-    return;
-  case 4:
-    *(uint32_t *)addr = data;
-    return;
-  case 8:
-    *(uint64_t *)addr = data;
-    return;
-  default:
-    return;
-  }
+static void out_of_bound(paddr_t addr) {
+  panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR ") at pc = " FMT_WORD,
+      addr, CONFIG_MBASE, CONFIG_MBASE + CONFIG_MSIZE, cpu.pc);
 }
 
 uint64_t pmem_read(uint64_t addr, int len) {
@@ -71,16 +44,27 @@ void scan_mem(char *args) {
   }
 }
 
+word_t paddr_read(paddr_t addr, int len) {
+  IFDEF(CONFIG_MTRACE, printf("read address: " FMT_PADDR ", len: %d\n", addr, len));
+  if (likely(in_pmem(addr))) return pmem_read(addr, len);
+  return mmio_read(addr, len);
+  out_of_bound(addr);
+  return 0;
+}
+
+void paddr_write(paddr_t addr, int len, word_t data) {
+  IFDEF(CONFIG_MTRACE, printf("write address: " FMT_PADDR ", len: %d, data: %ld\n", addr, len, data));
+  if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
+  mmio_write(addr, len, data); return;
+  out_of_bound(addr);
+}
+
 extern "C" void pmem_read(long long raddr, long long *rdata) {
     /* always read from "raddr & ~0x7ull" 8 bytes to rdata */
 #ifdef CONFIG_MTRACE
     printf("MEM READ: addr: %#016llx, data: %#016llx\n", raddr, *rdata);
 #endif
-    if ((uint64_t)raddr == RTC_BASE) {
-        *rdata = get_time();
-    } else {
-        *rdata = pmem_read(raddr & ~0x7ull, 8);
-    }
+    *rdata = paddr_read(raddr & ~0x7ull, 8);
 }
 
 extern "C" void pmem_write(long long waddr, long long wdata, char wmask) {
@@ -92,22 +76,18 @@ extern "C" void pmem_write(long long waddr, long long wdata, char wmask) {
 #ifdef CONFIG_MTRACE
     printf("MEM WRITE: addr: %#016llx, len: %d, data: %#016llx\n", waddr + loc, len, wdata);
 #endif
-    if ((uint64_t)waddr == SERIAL_BASE) {
-        putchar((int)wdata);
-    } else {
-        while (loc < 8) {
-            bool shift_bit = wmask_u & (unsigned char) 1;
-            if (shift_bit) {
-                while (1) {
-                    if (wmask_u == 0) break;
-                    wmask_u = wmask_u >> 1;
-                    len++;
-                }
-                break;
-            }     // find the byte location to store data;
-            wmask_u >>= 1;
-            loc++;
-        }
-        pmem_write(padd_waddr + loc, len, wdata);
+    while (loc < 8) {
+        bool shift_bit = wmask_u & (unsigned char) 1;
+        if (shift_bit) {
+            while (1) {
+                if (wmask_u == 0) break;
+                wmask_u = wmask_u >> 1;
+                len++;
+            }
+            break;
+        }     // find the byte location to store data;
+        wmask_u >>= 1;
+        loc++;
     }
+    paddr_write(padd_waddr + loc, len, wdata);
 }

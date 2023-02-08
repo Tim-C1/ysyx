@@ -1,4 +1,3 @@
-#include <cstdint>
 #include <dlfcn.h>
 #include <common.h>
 #include <memory.h>
@@ -9,7 +8,6 @@ void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
-extern NPC_CPU_state npc_cpu_state;
 extern svLogic trap_state;
 extern NPC_state npc_state;
 
@@ -32,20 +30,20 @@ void difftest_skip_ref() {
 
 static void show_ref_and_dut_regs(NPC_CPU_state *ref) {
     for (int i = 0; i < 32; i++) {
-        printf("npc: gpr[%d] = 0x%0lx\tnemu: gpr[%d] = 0x%0lx\n", i, npc_cpu_state.gpr[i], i, ref->gpr[i]);
+        printf("npc: gpr[%d] = 0x%0lx\tnemu: gpr[%d] = 0x%0lx\n", i, cpu.gpr[i], i, ref->gpr[i]);
     }
-    printf("npc: pc = 0x%lx\tnemu: pc = 0x%lx\n", npc_cpu_state.pc, ref->pc);
+    printf("npc: pc = 0x%lx\tnemu: pc = 0x%lx\n", cpu.pc, ref->pc);
 }
 
 static void checkregs(NPC_CPU_state *ref, uint64_t pc) {
     int same = 1;
     for (int i = 0; i < 32; i++) {
-        if (ref->gpr[i] != npc_cpu_state.gpr[i]) {
+        if (ref->gpr[i] != cpu.gpr[i]) {
             trap_state = 1;
             same = 0;
         }
     }
-    if (ref->pc != npc_cpu_state.pc) {
+    if (ref->pc != cpu.pc) {
         trap_state = 1;
         same = 0;
     }
@@ -61,6 +59,9 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
   void *handle;
   handle = dlopen(ref_so_file, RTLD_LAZY);
+  if (!handle) {
+      printf("error: %s\n", dlerror());
+  }
   assert(handle);
 
   ref_difftest_memcpy = dlsym(handle, "difftest_memcpy");
@@ -82,8 +83,8 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
   ref_difftest_init(port);
   ref_difftest_memcpy(RESET_VECTOR, guest_to_host(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
-  npc_cpu_state.pc = 0x80000000;
-  ref_difftest_regcpy(&npc_cpu_state, DIFFTEST_TO_REF);
+  cpu.pc = 0x80000000;
+  ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 
 void difftest_step(uint64_t pc) {
@@ -91,7 +92,7 @@ void difftest_step(uint64_t pc) {
 
   if (is_skip_ref) {
     // to skip the checking of an instruction, just copy the reg state to reference design
-    ref_difftest_regcpy(&npc_cpu_state, DIFFTEST_TO_REF);
+    ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
     is_skip_ref = false;
     return;
   }
