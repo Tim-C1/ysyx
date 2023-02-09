@@ -1,5 +1,4 @@
 #include <common.h>
-#include <cstdio>
 #include <device.h>
 #include <device/map.h>
 #include <utils.h>
@@ -28,7 +27,7 @@ void device_update() {
   }
   last = now;
 
-  IFDEF(CONFIG_HAS_VGA, vga_update_screen());
+  vga_update_screen();
 
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
@@ -57,11 +56,9 @@ void sdl_clear_event_queue() {
 }
 
 void init_device() {
-  IFDEF(CONFIG_TARGET_AM, ioe_init());
   init_map();
   init_serial();
+  init_timer();
   init_i8042();
-  IFDEF(CONFIG_HAS_AUDIO, init_audio());
-  IFDEF(CONFIG_HAS_DISK, init_disk());
-  IFDEF(CONFIG_HAS_SDCARD, init_sdcard());
+  init_vga();
 }
