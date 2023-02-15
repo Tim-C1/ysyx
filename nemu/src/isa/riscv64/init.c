@@ -17,6 +17,9 @@ static void restart() {
 
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
+
+  /* init the mstatus msr to 0xa00001800 to support difftest */
+  cpu.mstatus = 0xa00001800;
 }
 
 void init_isa() {

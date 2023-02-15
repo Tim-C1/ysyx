@@ -19,11 +19,69 @@ enum {
 #define src2I(i) do { *src2 = i; } while (0)
 #define destI(i) do { *dest = i; } while (0)
 
+#define MSTATUS_NUM 0x300
+#define MTVEC_NUM 0x305
+#define MEPC_NUM 0x341
+#define MCAUSE_NUM 0x342
+
+#define mstatus_val cpu.mstatus;
+#define mtvec_val cpu.mtvec;
+#define mepc_val cpu.mepc;
+#define mcause_val cpu.mcause;
+
 static word_t immI(uint32_t i) { return SEXT(BITS(i, 31, 20), 12); }
 static word_t immU(uint32_t i) { return SEXT(BITS(i, 31, 12), 20) << 12; }
 static word_t immS(uint32_t i) { return (SEXT(BITS(i, 31, 25), 7) << 5) | BITS(i, 11, 7); }
 static word_t immJ(uint32_t i) { return (SEXT(BITS(i, 31, 31), 1) << 20) | (BITS(i, 19, 12) << 12) | (BITS(i, 20, 20) << 11) | (BITS(i, 30, 25) << 5) | (BITS(i, 24, 21) << 1); }
 static word_t immB(uint32_t i) { return (SEXT(BITS(i, 31, 31), 1) << 12) | (BITS(i, 7, 7) << 11) | (BITS(i, 30, 25) << 5) | (BITS(i, 11, 8) << 1); }
+
+static word_t csr_read(word_t csr_num) {
+    switch (csr_num) {
+        case MSTATUS_NUM: return mstatus_val;
+        case MTVEC_NUM: return mtvec_val;
+        case MEPC_NUM: return mepc_val;
+        case MCAUSE_NUM: return mcause_val;
+        default: return -1;
+    }
+}
+
+static void csr_write(word_t csr_num, word_t val) {
+    switch(csr_num) {
+        case MSTATUS_NUM: cpu.mstatus = val;
+        case MTVEC_NUM: cpu.mtvec = val;
+        case MEPC_NUM: cpu.mtvec = val;
+        case MCAUSE_NUM: cpu.mcause = val;
+        default: break;
+    }
+}
+
+static void csrrw_exec(word_t csr_num, word_t rs1_val, int rd) {
+    word_t csr_val = csr_read(csr_num);
+    csr_write(csr_num, rs1_val);
+    R(rd) = csr_val;
+}
+
+static void csrrs_exec(word_t csr_num, word_t rs1_val, int rd) {
+    word_t csr_val = csr_read(csr_num);
+    csr_write(csr_num, csr_val | rs1_val);
+    R(rd) = csr_val;
+}
+
+static void decode_operand(Decode *s, word_t *dest, word_t *src1, word_t *src2, int type) {
+  uint32_t i = s->isa.inst.val;
+  int rd  = BITS(i, 11, 7);
+  int rs1 = BITS(i, 19, 15);
+  int rs2 = BITS(i, 24, 20);
+  destR(rd);
+  switch (type) {
+    case TYPE_I: src1R(rs1);     src2I(immI(i)); break;
+    case TYPE_U: src1I(immU(i)); break;
+    case TYPE_S: destI(immS(i)); src1R(rs1); src2R(rs2); break;
+    case TYPE_J: src1I(immJ(i)); break;
+    case TYPE_B: destI(immB(i)); src1R(rs1); src2R(rs2); break; 
+    case TYPE_R: src1R(rs1);     src2R(rs2); break;
+  }
+}
 
 /* wrap around code for ftrace */
 #ifdef CONFIG_FTRACE
@@ -76,22 +134,6 @@ static void save_ftrace_info(Decode *s) {
 }
 #endif
 /* wrap around code for ftrace */
-
-static void decode_operand(Decode *s, word_t *dest, word_t *src1, word_t *src2, int type) {
-  uint32_t i = s->isa.inst.val;
-  int rd  = BITS(i, 11, 7);
-  int rs1 = BITS(i, 19, 15);
-  int rs2 = BITS(i, 24, 20);
-  destR(rd);
-  switch (type) {
-    case TYPE_I: src1R(rs1);     src2I(immI(i)); break;
-    case TYPE_U: src1I(immU(i)); break;
-    case TYPE_S: destI(immS(i)); src1R(rs1); src2R(rs2); break;
-    case TYPE_J: src1I(immJ(i)); break;
-    case TYPE_B: destI(immB(i)); src1R(rs1); src2R(rs2); break; 
-    case TYPE_R: src1R(rs1);     src2R(rs2); break;
-  }
-}
 
 static int decode_exec(Decode *s) {
   word_t dest = 0, src1 = 0, src2 = 0;
@@ -161,6 +203,9 @@ static int decode_exec(Decode *s) {
   INSTPAT("0000000 ????? ????? 100 ????? 01100 11", xor    , R, R(dest) = src1 ^ src2);
   INSTPAT("??????? ????? ????? 100 ????? 00100 11", xori   , I, R(dest) = src1 ^ src2);
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
+  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, csrrw_exec(src2, src1, dest));
+  INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, csrrs_exec(src2, src1, dest));
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, s->dnpc = isa_raise_intr(0xb, s->pc));
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
   INSTPAT_END();
 

@@ -57,6 +57,7 @@ void init_regex() {
       panic("regex compilation failed: %s\n%s", error_msg, rules[i].regex);
     }
   }
+  Log("finish init regex\n");
 }
 
 typedef struct token {
@@ -81,8 +82,8 @@ static bool make_token(char *e) {
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
-        Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-            i, rules[i].regex, position, substr_len, substr_len, substr_start);
+        // Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
+        //     i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len;
 
@@ -274,7 +275,6 @@ uint64_t eval(int p, int q) {
             sscanf(tokens[p].str+2, "%lx", &val); 
         } else {
             val = isa_reg_str2val(tokens[p].str+1, &success);
-            printf("the val of reg:%s is %lu\n", tokens[p].str+1, val);
         }
         return val;
     } else {

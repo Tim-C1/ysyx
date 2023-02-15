@@ -117,7 +117,7 @@ static int cmd_info(char *args) {
       isa_reg_display();
       return 0;
   } else if (strcmp(arg, "w") == 0) {
-      display_all();
+      // display_all();
       return 0;
   }
   return -1;

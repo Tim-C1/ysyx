@@ -15,6 +15,12 @@ void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
 static bool is_skip_ref = false;
 static int skip_dut_nr_inst = 0;
+const char *regs_ref[] = {
+  "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
+  "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
+  "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
+  "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+};
 
 // this is used to let ref skip instructions which
 // can not produce consistent behavior with NEMU
@@ -48,7 +54,8 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   assert(ref_so_file != NULL);
 
   void *handle;
-  handle = dlopen(ref_so_file, RTLD_LAZY | MUXNDEF(CONFIG_CC_ASAN, RTLD_DEEPBIND, 0));
+  // handle = dlopen(ref_so_file, RTLD_LAZY | MUXNDEF(CONFIG_CC_ASAN, RTLD_DEEPBIND, 0));
+  handle = dlopen(ref_so_file, RTLD_LAZY);
   assert(handle);
 
   ref_difftest_memcpy = dlsym(handle, "difftest_memcpy");
@@ -81,6 +88,11 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
     nemu_state.state = NEMU_ABORT;
     nemu_state.halt_pc = pc;
     isa_reg_display();
+    printf("%s\n", "-------------------------------ref-------------------------------");
+    for (int i = 0; i < 32; i++) {
+      printf("%s\t%#08lx\n", regs_ref[i], ref->gpr[i]);    
+    }
+    printf("%s\t%#08lx\n", "pc", ref->pc);
   }
 }
 

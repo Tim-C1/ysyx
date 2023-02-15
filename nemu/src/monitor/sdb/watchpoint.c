@@ -24,6 +24,7 @@ void init_wp_pool() {
 
   
   free_ = wp_pool;
+  Log("finish init watchpoints");
 }
 
 /* TODO: Implement the functionality of watchpoint */
