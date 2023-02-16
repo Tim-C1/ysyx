@@ -24,10 +24,10 @@ enum {
 #define MEPC_NUM 0x341
 #define MCAUSE_NUM 0x342
 
-#define mstatus_val cpu.mstatus;
-#define mtvec_val cpu.mtvec;
-#define mepc_val cpu.mepc;
-#define mcause_val cpu.mcause;
+#define mstatus_val cpu.mstatus
+#define mtvec_val cpu.mtvec
+#define mepc_val cpu.mepc
+#define mcause_val cpu.mcause
 
 static word_t immI(uint32_t i) { return SEXT(BITS(i, 31, 20), 12); }
 static word_t immU(uint32_t i) { return SEXT(BITS(i, 31, 12), 20) << 12; }
@@ -206,6 +206,7 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, csrrw_exec(src2, src1, dest));
   INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, csrrs_exec(src2, src1, dest));
   INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, s->dnpc = isa_raise_intr(0xb, s->pc));
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, s->dnpc = mepc_val + 4);
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
   INSTPAT_END();
 
