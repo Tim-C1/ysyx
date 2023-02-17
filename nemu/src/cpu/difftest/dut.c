@@ -90,9 +90,9 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
     isa_reg_display();
     printf("%s\n", "-------------------------------ref-------------------------------");
     for (int i = 0; i < 32; i++) {
-      printf("%s\t%#08lx\n", regs_ref[i], ref->gpr[i]);    
+      printf("%s\t%#016lx\n", regs_ref[i], ref->gpr[i]);    
     }
-    printf("%s\t%#08lx\n", "pc", ref->pc);
+    printf("%s\t%#016lx\n", "pc", ref->pc);
   }
 }
 
