@@ -11,7 +11,10 @@ Context* __am_irq_handle(Context *c) {
       case (0xb):
           if (c->gpr[17] == -1) {
               ev.event = EVENT_YIELD;
-          } else if (c->gpr[17] == 1 || c->gpr[17] == 0) {
+          } else if (c->gpr[17] == 1 ||
+                     c->gpr[17] == 0 ||
+                     c->gpr[17] == 4 ||
+                     c->gpr[17] == 9) {
               ev.event = EVENT_SYSCALL;
           } else {
               printf("Please handle me, a7=%d\n", c->gpr[17]);
@@ -19,11 +22,7 @@ Context* __am_irq_handle(Context *c) {
           c->mepc = c->mepc + 4;
           break;
       default:
-          // for (int i = 0; i < 32; i++) {
-          //     printf("0x%d\n", c->gpr[i]);
-          // }
           printf("%s\t0x%d\n", "mcause", c->mcause);
-          // printf("%s\t0x%d\n", "mstatus", c->mstatus);
           // printf("%s\t0x%d\n", "mepc", c->mepc);
           ev.event = EVENT_ERROR; break;
     }
