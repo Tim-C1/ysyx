@@ -11,10 +11,13 @@ Context* __am_irq_handle(Context *c) {
       case (0xb):
           if (c->gpr[17] == -1) {
               ev.event = EVENT_YIELD;
-              c->mepc = c->mepc + 4;
+          } else if (c->gpr[17] == 1 || c->gpr[17] == 0) {
+              ev.event = EVENT_SYSCALL;
           } else {
               printf("Please handle me, a7=%d\n", c->gpr[17]);
           }
+          c->mepc = c->mepc + 4;
+          break;
       default:
           // for (int i = 0; i < 32; i++) {
           //     printf("0x%d\n", c->gpr[i]);

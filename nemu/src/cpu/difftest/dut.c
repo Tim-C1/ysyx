@@ -92,7 +92,6 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
     for (int i = 0; i < 32; i++) {
       printf("%s\t%#016lx\n", regs_ref[i], ref->gpr[i]);    
     }
-    printf("%s\t%#016lx\n", "pc", ref->pc);
     printf("%s\t0x%016lx\n", "pc", ref->pc);
     printf("%s\t0x%016lx\n", "mcause", ref->mcause);
     printf("%s\t0x%016lx\n", "mepc", ref->mepc);

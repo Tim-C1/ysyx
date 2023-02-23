@@ -47,10 +47,10 @@ static word_t csr_read(word_t csr_num) {
 
 static void csr_write(word_t csr_num, word_t val) {
     switch(csr_num) {
-        case MSTATUS_NUM: cpu.mstatus = val;
-        case MTVEC_NUM: cpu.mtvec = val;
-        case MEPC_NUM: cpu.mtvec = val;
-        case MCAUSE_NUM: cpu.mcause = val;
+        case MSTATUS_NUM: cpu.mstatus = val; break;
+        case MTVEC_NUM: cpu.mtvec = val; break;
+        case MEPC_NUM: cpu.mepc = val; break;
+        case MCAUSE_NUM: cpu.mcause = val; break;
         default: break;
     }
 }
@@ -206,7 +206,7 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, csrrw_exec(src2, src1, dest));
   INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, csrrs_exec(src2, src1, dest));
   INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, s->dnpc = isa_raise_intr(0xb, s->pc));
-  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, s->dnpc = mepc_val + 4);
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, s->dnpc = mepc_val);
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
   INSTPAT_END();
 
