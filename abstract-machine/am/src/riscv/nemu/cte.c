@@ -14,7 +14,12 @@ Context* __am_irq_handle(Context *c) {
           } else if (c->gpr[17] == 1 ||
                      c->gpr[17] == 0 ||
                      c->gpr[17] == 4 ||
-                     c->gpr[17] == 9) {
+                     c->gpr[17] == 9 ||
+                     c->gpr[17] == 2 ||
+                     c->gpr[17] == 3 ||
+                     c->gpr[17] == 4 ||
+                     c->gpr[17] == 7 ||
+                     c->gpr[17] == 8) {
               ev.event = EVENT_SYSCALL;
           } else {
               printf("Please handle me, a7=%d\n", c->gpr[17]);
