@@ -6,7 +6,7 @@
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 static void strrev(char *str);
 
-int itoa(int num, char *str);
+int itoa(long long num, char *str, int base);
 
 int printf(const char *fmt, ...) {
   char buf[10000];
@@ -21,7 +21,7 @@ int printf(const char *fmt, ...) {
 int vsprintf(char *out, const char *fmt, va_list ap) {
   int cnt = 0;
   char *s;
-  int d;
+  long long d;
   char *tmp = out;
   while (*fmt) {
     if (*fmt == '%') {
@@ -34,8 +34,12 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         tmp = tmp + strlen(s);
         break;
       case 'd':
-        d = va_arg(ap, int);
-        tmp = tmp + itoa(d, tmp);
+        d = va_arg(ap, long long);
+        tmp = tmp + itoa(d, tmp, 10);
+        break;
+      case 'p':
+        d = va_arg(ap, long long);
+        tmp = tmp + itoa(d, tmp, 16);
         break;
       }
       fmt++;
@@ -57,42 +61,25 @@ int sprintf(char *out, const char *fmt, ...) {
 }
 
 int snprintf(char *out, size_t n, const char *fmt, ...) {
-  panic("Not implemented");
+  va_list ap;
+  va_start(ap, fmt);
+  int nw = vsnprintf(out, n, fmt, ap);
+  va_end(ap);
+  return nw;
 }
 
 
 int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
-  int cnt = 0;
-  char *s;
-  int d;
-  char *tmp = out;
-  while (*fmt) {
-    if (*fmt == '%') {
-      // must have a specifier
-      fmt++;
-      switch (*fmt) {
-      case 's':
-        s = va_arg(ap, char *);
-        strcpy(tmp, s);
-        tmp = tmp + strlen(s);
-        break;
-      case 'd':
-        d = va_arg(ap, int);
-        tmp = tmp + itoa(d, tmp);
-        break;
-      }
-      fmt++;
-    } else {
-      *tmp++ = *fmt++;
-    }
+  int nw = vsprintf(out, fmt, ap);
+  if (nw >= n) {
+      out[n-1] = '\0';
+      return n;
   }
-  *tmp = '\0';
-  cnt = strlen(out);
-  return cnt;
+  return nw;
 }
 
 /* decimal number to string */
-int itoa(int num, char *str) {
+int itoa(long long num, char *str, int base) {
   char sign = '+';
   int cnt = 0;
   int digit;
@@ -100,12 +87,27 @@ int itoa(int num, char *str) {
     num = -num;
     sign = '-';
   }
-  do {
-    digit = num % 10;
-    *(str + cnt) = (char)('0' + digit);
-    num /= 10;
-    cnt++;
-  } while (num != 0);
+  if (base == 10) {
+      do {
+        digit = num % 10;
+        *(str + cnt) = (char)('0' + digit);
+        num /= 10;
+        cnt++;
+      } while (num != 0);
+  } else {
+      do {
+          digit = num % 16;
+          if (digit < 10) {
+              *(str + cnt) = (char)('0' + digit);
+              num /= 16;
+              cnt++;
+          } else {
+              *(str + cnt) = (char)('a' + digit - 10);
+              num /= 16;
+              cnt++;
+          }
+       } while (num != 0);
+  }
   if (sign == '-') {
     *(str + cnt) = sign;
     cnt++;
