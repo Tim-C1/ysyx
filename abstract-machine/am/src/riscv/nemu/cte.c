@@ -19,7 +19,8 @@ Context* __am_irq_handle(Context *c) {
                      c->gpr[17] == 3 ||
                      c->gpr[17] == 4 ||
                      c->gpr[17] == 7 ||
-                     c->gpr[17] == 8) {
+                     c->gpr[17] == 8 ||
+                     c->gpr[17] == 19) {
               ev.event = EVENT_SYSCALL;
           } else {
               printf("Please handle me, a7=%d\n", c->gpr[17]);
