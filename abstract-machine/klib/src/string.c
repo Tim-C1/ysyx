@@ -83,6 +83,7 @@ void *memmove(void *dst, const void *src, size_t n) {
 }
 
 void *memcpy(void *out, const void *in, size_t n) {
+    assert(((uintptr_t)out + n < (uintptr_t)in) || ((uintptr_t)in + n < (uintptr_t)out));
     size_t i = 0;
     char *p = (char *) out;
     const char *p_in = (const char *) in;
