@@ -18,10 +18,11 @@ static bool g_print_step = false;
 #ifdef CONFIG_FTRACE
 typedef struct ftrace_info {
     uint64_t jump_addr;
+    uint64_t pc;
     int jump_type; // 1 CALL; 2 RETURN
     char* func_name;
 } ftrace_info; 
-extern ftrace_info ftrace_buf[1024];
+extern ftrace_info ftrace_buf[10240000];
 extern int ftrace_info_cnt;
 #endif
 
@@ -94,6 +95,18 @@ static void execute(uint64_t n) {
 }
 
 static void statistic() {
+  #ifdef CONFIG_FTRACE    
+  for (int i = 0; i < ftrace_info_cnt; i++) {
+      ftrace_info ftrace_info = ftrace_buf[i];
+      if (ftrace_info.func_name != NULL) {
+          switch (ftrace_info.jump_type) {
+              case 1: printf("CALL (%s@%#8lx) at pc: "FMT_WORD" \n", ftrace_info.func_name, ftrace_info.jump_addr, ftrace_info.pc); break;
+              case 2: printf("RET (%s@%#8lx) at pc: "FMT_WORD" \n", ftrace_info.func_name, ftrace_info.jump_addr, ftrace_info.pc); break;
+              default: break;
+          }
+      }
+  }
+  #endif
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%ld", "%'ld")
   Log("host time spent = " NUMBERIC_FMT " us", g_timer);
@@ -123,18 +136,6 @@ void cpu_exec(uint64_t n) {
 
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;
-  #ifdef CONFIG_FTRACE    
-  for (int i = 0; i < ftrace_info_cnt; i++) {
-      ftrace_info ftrace_info = ftrace_buf[i];
-      if (ftrace_info.func_name != NULL) {
-          switch (ftrace_info.jump_type) {
-              case 1: printf("CALL (%s@%#8lx)\n", ftrace_info.func_name, ftrace_info.jump_addr); break;
-              case 2: printf("RET (%s@%#8lx)\n", ftrace_info.func_name, ftrace_info.jump_addr); break;
-              default: break;
-          }
-      }
-  }
-  #endif
   switch (nemu_state.state) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 

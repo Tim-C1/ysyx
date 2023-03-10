@@ -88,11 +88,12 @@ static void decode_operand(Decode *s, word_t *dest, word_t *src1, word_t *src2, 
 extern char *get_func_symbol_by_address(uint64_t addr, int type);
 typedef struct ftrace_info {
     uint64_t jump_addr;
+    uint64_t pc;
     int jump_type; // 1 CALL; 2 RETURN
     char* func_name;
 } ftrace_info; 
 
-ftrace_info ftrace_buf[1024000]; // store ftrace info
+ftrace_info ftrace_buf[10240000]; // store ftrace info
 int ftrace_info_cnt = 0;
 static int is_ret(Decode *s) { return (s->isa.inst.val == 0x8067); } // RET
 static int is_jump(Decode *s) {
@@ -108,6 +109,7 @@ static int is_jump(Decode *s) {
 
 static void save_ftrace_info(Decode *s) {
   uint32_t inst = s->isa.inst.val;
+  ftrace_buf[ftrace_info_cnt].pc = s->pc;
   if (is_ret(s)) {
       ftrace_buf[ftrace_info_cnt].jump_addr = s->pc;
       ftrace_buf[ftrace_info_cnt].jump_type = 2;
