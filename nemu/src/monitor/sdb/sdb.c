@@ -2,8 +2,13 @@
 #include <cpu/cpu.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <memory/paddr.h>
+#include <difftest-def.h>
 #include "sdb.h"
 #include <memory/vaddr.h>
+extern void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction);
+extern void (*ref_difftest_regcpy)(void *dut, bool direction);
+bool difftest_detach = false;
 static int is_batch_mode = false;
 
 void init_regex();
@@ -51,6 +56,8 @@ static int cmd_scan_mem(char *args);
 static int cmd_p(char *args);
 static int cmd_w(char *args);
 static int cmd_d(char *args);
+static int cmd_detach(char *args);
+static int cmd_attach(char *args);
 
 static struct {
   const char *name;
@@ -68,7 +75,8 @@ static struct {
   { "p", "calculate the value of a expression", cmd_p},
   { "w", "set a watchpoint to a expression", cmd_w},
   { "d", "delete a watchpoint", cmd_d},
-  
+  { "detach", "detach from difftest", cmd_detach},
+  { "attach", "continue difftest", cmd_attach}
 };
 
 #define NR_CMD ARRLEN(cmd_table)
@@ -176,6 +184,20 @@ static int cmd_d(char *args) {
     return 0;
 }
 
+static int cmd_detach(char *args) {
+  difftest_detach = true;
+  return 0;
+}
+
+static int cmd_attach(char *args) {
+  difftest_detach = false;
+  /* recover mem */
+  ref_difftest_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), CONFIG_MSIZE, DIFFTEST_TO_REF);
+
+  /* recover gprs */
+  ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
+  return 0;
+}
 
 void sdb_set_batch_mode() {
   is_batch_mode = true;
