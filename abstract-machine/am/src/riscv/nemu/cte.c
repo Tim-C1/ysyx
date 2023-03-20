@@ -20,6 +20,7 @@ Context* __am_irq_handle(Context *c) {
                      c->gpr[17] == 4 ||
                      c->gpr[17] == 7 ||
                      c->gpr[17] == 8 ||
+                     c->gpr[17] == 13 ||
                      c->gpr[17] == 19) {
               ev.event = EVENT_SYSCALL;
           } else {

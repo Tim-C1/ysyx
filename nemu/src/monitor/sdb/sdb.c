@@ -6,6 +6,7 @@
 #include <difftest-def.h>
 #include "sdb.h"
 #include <memory/vaddr.h>
+#include <string.h>
 extern void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction);
 extern void (*ref_difftest_regcpy)(void *dut, bool direction);
 bool difftest_detach = false;
@@ -76,7 +77,7 @@ static struct {
   { "w", "set a watchpoint to a expression", cmd_w},
   { "d", "delete a watchpoint", cmd_d},
   { "detach", "detach from difftest", cmd_detach},
-  { "attach", "continue difftest", cmd_attach}
+  { "attach", "continue difftest", cmd_attach},
 };
 
 #define NR_CMD ARRLEN(cmd_table)
@@ -198,6 +199,20 @@ static int cmd_attach(char *args) {
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
   return 0;
 }
+
+// static int save_cmd(char *args) {
+//   char *path = strtok(NULL, " ");
+//   FILE *f = fopen(path, "w+");
+//   int size_regs = fwrite(&cpu, sizeof(cpu.pc), sizeof(cpu) / sizeof(cpu.pc), f);
+//   assert(size_regs == sizeof(cpu));
+//   int size_mem = fwrite(guest_to_host(CONFIG_MBASE), 1, CONFIG_MSIZE, f);
+//   assert(size_mem == sizeof(guest_to_host(CONFIG_MBASE)));
+//   return 0;
+// }
+//
+// static int load_cmd(char *args) {
+//    return 0;
+// }
 
 void sdb_set_batch_mode() {
   is_batch_mode = true;
