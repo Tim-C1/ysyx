@@ -11,6 +11,10 @@
 typedef struct {
   uint64_t gpr[32];
   uint64_t pc;
+  uint64_t mepc;
+  uint64_t mstatus;
+  uint64_t mcause;
+  uint64_t mtvec;
 } riscv64_NPC_CPU_state;
 
 extern riscv64_NPC_CPU_state cpu;
