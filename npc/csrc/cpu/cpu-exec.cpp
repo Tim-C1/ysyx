@@ -115,7 +115,7 @@ void exec(uint32_t num) {
         dut -> eval();
         if (dut->clk == 1 && sim_time >= 8) { // finish executing one instruction
             save_reg(dut->pc_val, dut->mepc_value, dut->mtvec_value, dut->mstatus_value, dut->mcause_value);
-            difftest_step(pc_p);
+            // difftest_step(pc_p);
             pc_p = cpu.pc;
         }
         ebreak_detect(&is_ebreak);
