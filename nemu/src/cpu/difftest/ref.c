@@ -19,11 +19,19 @@ void difftest_regcpy(void *dut, bool direction) {
             cpu.gpr[i] = dut_r->gpr[i];
         }
         cpu.pc = dut_r->pc;
+        cpu.mepc = dut_r->mepc;
+        cpu.mstatus = dut_r->mstatus;
+        cpu.mcause = dut_r->mcause;
+        cpu.mtvec = dut_r->mtvec;
     } else {
         for (int i = 0; i < 32; i++) {
             dut_r->gpr[i] = cpu.gpr[i];
         }     
         dut_r->pc = cpu.pc;
+        dut_r->mepc = cpu.mepc;
+        dut_r->mstatus = cpu.mstatus;
+        dut_r->mcause = cpu.mcause;
+        dut_r->mtvec = cpu.mtvec;
     }
 }
 
