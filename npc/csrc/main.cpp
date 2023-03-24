@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
     svSetScope(scope);
     init_npc_monitor(argv[1], argv[2], argv[3]);
     if (strcmp(argv[4], "batch") == 0) {
-        is_batch_mode = 1;
+        is_batch_mode = 0;
     }
     npc_sdb_mainloop();
     fclose(log_fp);

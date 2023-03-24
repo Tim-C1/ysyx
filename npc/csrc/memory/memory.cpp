@@ -45,15 +45,19 @@ void scan_mem(char *args) {
 }
 
 word_t paddr_read(paddr_t addr, int len) {
-  IFDEF(CONFIG_MTRACE, printf("read address: " FMT_PADDR ", len: %d\n", addr, len));
-  if (likely(in_pmem(addr))) return pmem_read(addr, len);
+  uint64_t data;
+  if (likely(in_pmem(addr))) {
+    data = pmem_read(addr, len);
+    // printf("read address: " FMT_PADDR ", len: %d, at pc: 0x%lx, data: 0x%lx\n", addr, len, cpu.pc, data);
+    return data;
+  }
   return mmio_read(addr, len);
   out_of_bound(addr);
   return 0;
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
-  IFDEF(CONFIG_MTRACE, printf("write address: " FMT_PADDR ", len: %d, data: %ld\n", addr, len, data));
+  // printf("write address: " FMT_PADDR ", len: %d, data: %ld at pc: 0x%lx\n", addr, len, data, cpu.pc);
   if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
   mmio_write(addr, len, data); return;
   out_of_bound(addr);
@@ -61,9 +65,6 @@ void paddr_write(paddr_t addr, int len, word_t data) {
 
 extern "C" void pmem_read(long long raddr, long long *rdata) {
     /* always read from "raddr & ~0x7ull" 8 bytes to rdata */
-#ifdef CONFIG_MTRACE
-    printf("MEM READ: addr: %#016llx, data: %#016llx\n", raddr, *rdata);
-#endif
     *rdata = paddr_read(raddr & ~0x7ull, 8);
 }
 
@@ -73,9 +74,6 @@ extern "C" void pmem_write(long long waddr, long long wdata, char wmask) {
     int loc = 0;
     unsigned char wmask_u = (unsigned char) wmask;
     uint64_t padd_waddr = waddr & ~0x7ull;
-#ifdef CONFIG_MTRACE
-    printf("MEM WRITE: addr: %#016llx, len: %d, data: %#016llx\n", waddr + loc, len, wdata);
-#endif
     while (loc < 8) {
         bool shift_bit = wmask_u & (unsigned char) 1;
         if (shift_bit) {

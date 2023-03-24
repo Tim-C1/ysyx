@@ -24,7 +24,7 @@ extern void device_update();
 extern NPC_state npc_state;
 
 static char log_buf[128];
-static uint64_t pc_p; // save previous pc value for difftest to show the wrong instruction position
+static uint64_t pc_p = 0x80000000; // save previous pc value for difftest to show the wrong instruction position
 static uint64_t immI(uint32_t i) { return SEXT(BITS(i, 31, 20), 12); }
 static uint64_t immU(uint32_t i) { return SEXT(BITS(i, 31, 12), 20) << 12; }
 static uint64_t immS(uint32_t i) { return (SEXT(BITS(i, 31, 25), 7) << 5) | BITS(i, 11, 7); }
@@ -90,11 +90,15 @@ static void save_ftrace_info(uint32_t inst, uint32_t pc) {
 #endif
 /* wrap around code for ftrace */
 
-static void save_reg(uint64_t pc) {
+static void save_reg(uint64_t pc, uint64_t mepc, uint64_t mtvec, uint64_t mstatus, uint64_t mcause) {
     for (int i = 0; i < 32; i++) {
         cpu.gpr[i] = cpu_gpr[i];
     }
     cpu.pc = pc;
+    cpu.mepc = mepc;
+    cpu.mtvec = mtvec;
+    cpu.mstatus = mstatus;
+    cpu.mcause = mcause;
 }
 
 static void pc_reset (Vtop *dut, vluint64_t &sim_time) {
@@ -110,8 +114,9 @@ void exec(uint32_t num) {
         dut -> clk ^= 1;
         dut -> eval();
         if (dut->clk == 1 && sim_time >= 8) { // finish executing one instruction
-            save_reg(dut->pc_val);
-            /*difftest_step(pc_p);*/
+            save_reg(dut->pc_val, dut->mepc_value, dut->mtvec_value, dut->mstatus_value, dut->mcause_value);
+            difftest_step(pc_p);
+            pc_p = cpu.pc;
         }
         ebreak_detect(&is_ebreak);
         if (is_ebreak == 1) {
@@ -124,8 +129,7 @@ void exec(uint32_t num) {
         pc_reset(dut, sim_time);
 
         if (dut->clk == 1 && sim_time >= SIM_BEGIN) {
-            uint32_t instruction = pmem_read(dut -> pc_val, 4);
-            pc_p = dut -> pc_val;
+            uint32_t instruction = pmem_read(cpu.pc, 4);
             i++;
 #ifdef CONFIG_ITRACE
             char *p = log_buf;
@@ -137,13 +141,13 @@ void exec(uint32_t num) {
             p++;
             void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
             disassemble(p, log_buf + sizeof(log_buf) - p, dut -> pc_val, (uint8_t *)&instruction, 4);
-            fprintf(log_fp, "%s\n", log_buf);
+            fprintf(log_fp, "cpu.pc: 0x%lx, %s\n", dut->pc_val, log_buf);
 #endif
 #ifdef CONFIG_FTRACE
             save_ftrace_info(instruction, dut->pc_val);
 #endif
         }
-        m_trace -> dump(sim_time);
+        // m_trace -> dump(sim_time);
         sim_time++;
     }
 }
